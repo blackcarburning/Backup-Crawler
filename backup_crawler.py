@@ -156,7 +156,13 @@ class Dashboard:
         )
 
         bar_width = 20
-        static_width = 5 + 2 + bar_width + 3 + 8 + 1 + 8 + 1
+        worker_label_width = 4  # e.g. "W01 "
+        bar_padding_width = 3  # "[" + "] "
+        position_width = 9  # "X/Y" plus padding
+        status_width = 9  # status text plus padding
+        static_width = (
+            worker_label_width + bar_padding_width + bar_width + position_width + status_width
+        )
         path_width = max(10, terminal_width - static_width)
 
         lines = [header]
@@ -223,6 +229,7 @@ class SafeAppender:
 
 
 _MOUNT_ESCAPE = re.compile(r"\\([0-7]{3})")
+MAX_DSMC_SUCCESS_RC = 4
 
 
 def decode_mountinfo_path(value: str) -> str:
@@ -362,6 +369,15 @@ def get_batch(
     return batch
 
 
+def wait_for_queue_drain(work_queue: queue.Queue[str], timeout_seconds: int) -> bool:
+    deadline = time.monotonic() + timeout_seconds
+    while time.monotonic() < deadline:
+        if work_queue.unfinished_tasks == 0:
+            return True
+        time.sleep(0.2)
+    return work_queue.unfinished_tasks == 0
+
+
 def worker(
     worker_number: int,
     args: argparse.Namespace,
@@ -452,7 +468,7 @@ def worker(
                             logger.write(f"{worker_name}: failed to start dsmc: {exc}")
 
                         worker_states.set_result(worker_number, return_code)
-                        if return_code <= 4:
+                        if return_code <= MAX_DSMC_SUCCESS_RC:
                             counters.add("completed")
                             logger.write(
                                 f"{worker_name}: completed {index}/{len(batch)} "
@@ -707,7 +723,8 @@ def main() -> int:
             logger.write("WARNING: producer thread did not exit in time; requesting stop")
             stop_event.set()
             producer_done.set()
-        work_queue.join()
+        if not wait_for_queue_drain(work_queue, args.shutdown_wait_seconds):
+            logger.write("WARNING: work queue did not drain in time")
         for thread in workers:
             thread.join(timeout=args.shutdown_wait_seconds)
             if thread.is_alive():
