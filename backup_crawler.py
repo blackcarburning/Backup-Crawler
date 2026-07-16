@@ -20,6 +20,44 @@ Design notes
   (disabled) to avoid interrupting legitimate long-running backups.
 * No SQLite database is used; all state is held in-memory and written to log
   files under --log-dir.
+
+Special handling of the filesystem root (/)
+-------------------------------------------
+When the crawl entry point is exactly /, the script treats / as a traversal
+anchor rather than an ordinary directory job:
+
+1. / is never submitted to dsmc as a directory operand.  Passing ``/`` to
+   ``dsmc incremental`` can be interpreted as a full filesystem/volume backup
+   and may take orders of magnitude longer than a per-directory job.
+
+2. A dedicated ROOT_FILES job (worker slot 0 in the dashboard) is started
+   alongside the regular workers.  It collects every non-directory entry
+   directly under / (plain files, device nodes, sockets, FIFOs, and symlinks)
+   and invokes ``dsmc incremental`` with those entries listed as explicit file
+   operands — for example::
+
+       dsmc incremental -resourceutilization=2 /etc.conf /initrd.img /vmlinuz
+
+   This avoids the ambiguous "/"  directory operand entirely.
+
+3. Symlinks under / are included as link objects (backed up as symlinks rather
+   than their targets) because ``entry.is_dir(follow_symlinks=False)`` returns
+   False for all symlinks, even those pointing at directories.  This is
+   consistent with how dsmc handles symlinks by default.
+
+4. If there are no eligible non-directory entries directly under /, the
+   ROOT_FILES job logs a skip reason and exits without invoking dsmc.
+
+5. If the combined length of the file-path arguments would exceed
+   MAX_ROOT_FILES_ARG_BYTES (128 KB), the list is split into multiple chunks,
+   each invoked as a separate dsmc command.
+
+6. All immediate child directories of / continue through the normal dynamic
+   worker/batch queue as if they had been the entry point themselves.
+
+7. The ROOT_FILES row in the dashboard shows: state, number of chunks,
+   current chunk, child PID, runtime, last-output age, per-invocation return
+   code, and aggregated dsmc statistics.
 """
 
 from __future__ import annotations
@@ -50,6 +88,10 @@ IDLE_TIMEOUT_RC = 125   # Synthetic RC: no-output (idle) timeout
 # Dashboard: annotate a running worker as "quiet" after this many idle seconds.
 # This means no dsmc output has been received, not that the process is hung.
 QUIET_DISPLAY_THRESHOLD_SECS = 60.0
+
+# Maximum combined byte length of explicit file-path arguments passed to dsmc
+# in a single root-files chunk.  Stays well below the Linux ARG_MAX of 2 MB.
+MAX_ROOT_FILES_ARG_BYTES = 128 * 1024
 
 _UNIT_MULTIPLIERS: dict[str, int] = {
     "B": 1,
@@ -349,13 +391,15 @@ class WorkerState:
 
 
 class WorkerStates:
-    def __init__(self, streams: int) -> None:
+    def __init__(self, streams: int, has_root_files_job: bool = False) -> None:
         self._lock = threading.Lock()
         self._next_batch_id = 0
-        self._states = {
-            number: WorkerState(worker_number=number)
-            for number in range(1, streams + 1)
-        }
+        self._states: dict[int, WorkerState] = {}
+        if has_root_files_job:
+            # Slot 0 is reserved for the ROOT_FILES special job.
+            self._states[0] = WorkerState(worker_number=0)
+        for number in range(1, streams + 1):
+            self._states[number] = WorkerState(worker_number=number)
 
     def start_batch(self, worker_number: int, total: int) -> None:
         with self._lock:
@@ -466,6 +510,15 @@ class WorkerStates:
             state.batch_start_time = None
             state.dir_start_time = None
             state.child_pid = None
+
+    def set_custom_status(
+        self, worker_number: int, status: str, directory: str = ""
+    ) -> None:
+        """Set status and current_directory directly (for special jobs, e.g. ROOT_FILES)."""
+        with self._lock:
+            state = self._states[worker_number]
+            state.status = status
+            state.current_directory = directory
 
     def get_batch_id(self, worker_number: int) -> int:
         """Return the current batch ID for the given worker (thread-safe)."""
@@ -578,10 +631,10 @@ class Dashboard:
             sep,
         ]
 
-        # Per-worker rows
+        # Per-worker rows (worker 0 = ROOT_FILES special job, shown first when present)
         bar_width = 10
         # Layout (fixed-width prefix before path):
-        # W01 + sp = 4
+        # label + sp = 11 (ROOT_FILES=10 chars; regular workers such as W01 are padded)
         # [bar] + sp = bar_width+3
         # pos + sp = 7+1 = 8
         # status + sp = STATUS_WIDTH+1
@@ -592,10 +645,13 @@ class Dashboard:
         # ok:NN to:NN fl:NN + sp = 18
         # rc=NNN + sp = 7
         # path (remaining)
-        static_width = 4 + (bar_width + 3) + 8 + (self._STATUS_WIDTH + 1) + 6 + 10 + 10 + 12 + 18 + 7
+        static_width = 11 + (bar_width + 3) + 8 + (self._STATUS_WIDTH + 1) + 6 + 10 + 10 + 12 + 18 + 7
         path_width = max(8, terminal_width - static_width)
 
         for state in states:
+            # Worker slot 0 is the ROOT_FILES special job; all others are regular workers.
+            label = "ROOT_FILES" if state.worker_number == 0 else f"W{state.worker_number:02d}"
+
             pos = (
                 f"{state.batch_index}/{state.batch_total}"
                 if state.batch_total > 0
@@ -646,7 +702,7 @@ class Dashboard:
             )
 
             prefix = (
-                f"W{state.worker_number:02d} "
+                f"{label:<10} "
                 f"{bar} "
                 f"{pos:>7} "
                 f"{display_status:<{self._STATUS_WIDTH}} "
@@ -808,9 +864,14 @@ def scan_directories(
         while stack and not stop_event.is_set():
             current = stack.pop()
 
-            if not put_with_stop(work_queue, current, stop_event):
-                break
-            counters.add("discovered")
+            # When the crawl root is the filesystem root (/), do not enqueue it
+            # as an ordinary directory job.  The dedicated root-files job handles
+            # non-directory entries directly under / using explicit file operands.
+            # All child directories of / continue through the normal queue.
+            if current != os.sep:
+                if not put_with_stop(work_queue, current, stop_event):
+                    break
+                counters.add("discovered")
 
             try:
                 with os.scandir(current) as entries:
@@ -861,6 +922,228 @@ def dsm_directory_operand(path: str) -> str:
     if path == os.sep:
         return path
     return path.rstrip(os.sep) + os.sep
+
+
+# ---------------------------------------------------------------------------
+# Root-files job helpers
+# ---------------------------------------------------------------------------
+
+def collect_root_files(root: str, excluded_paths: frozenset) -> list[str]:
+    """
+    Return a sorted list of non-directory entries directly under *root*.
+
+    Symlinks pointing at directories are treated as non-directories here
+    (follow_symlinks=False) and are included — dsmc backs them up as link
+    objects rather than descending into their targets.  Symlinks to files
+    are included in the same way.
+
+    Entries that match *excluded_paths* are omitted.
+    """
+    files: list[str] = []
+    try:
+        with os.scandir(root) as it:
+            for entry in it:
+                try:
+                    if entry.is_dir(follow_symlinks=False):
+                        continue  # directories are handled by the normal work queue
+                    path = os.path.normpath(entry.path)
+                    if is_path_excluded(path, excluded_paths):
+                        continue
+                    files.append(path)
+                except OSError:
+                    pass
+    except OSError:
+        pass
+    return sorted(files)
+
+
+def chunk_root_files(
+    files: list[str],
+    max_bytes: int = MAX_ROOT_FILES_ARG_BYTES,
+) -> list[list[str]]:
+    """
+    Split *files* into argv-safe chunks so that the total UTF-8 byte length
+    of each chunk stays within *max_bytes*.  Every file path appears in
+    exactly one chunk.  An empty *files* list produces an empty result.
+    """
+    if not files:
+        return []
+    chunks: list[list[str]] = []
+    current: list[str] = []
+    current_bytes = 0
+    for path in files:
+        # +1 for the null-byte separator in the kernel's execve argv accounting
+        cost = len(path.encode("utf-8", errors="surrogateescape")) + 1
+        if current and current_bytes + cost > max_bytes:
+            chunks.append(current)
+            current = [path]
+            current_bytes = cost
+        else:
+            current.append(path)
+            current_bytes += cost
+    if current:
+        chunks.append(current)
+    return chunks
+
+
+def run_root_files_job(
+    args: argparse.Namespace,
+    root: str,
+    excluded_paths: frozenset,
+    worker_states: "WorkerStates",
+    global_stats: "GlobalDsmcStats",
+    logger: "SafeLogger",
+    failed_logger: "SafeAppender",
+    stop_event: threading.Event,
+) -> None:
+    """
+    Dedicated thread that backs up non-directory entries directly under the
+    filesystem root (/).
+
+    Strategy
+    --------
+    * Collect every non-directory entry under ``root`` (symlinks included as
+      link objects, not descended into).
+    * Split the list into argv-safe chunks (≤ MAX_ROOT_FILES_ARG_BYTES each).
+    * For each chunk invoke::
+
+          dsmc incremental -resourceutilization=N [extra-opts] /file1 /file2 …
+
+      Explicit file operands avoid passing the ambiguous ``/`` directory
+      operand to dsmc, which IBM Storage Protect may interpret as a full
+      filesystem/volume backup and which can take orders of magnitude longer
+      than an ordinary directory-content job.
+    * If there are no eligible files the job is marked *skipped* and dsmc is
+      never invoked.
+
+    Dashboard visibility
+    --------------------
+    Uses worker slot 0 in *worker_states* so the dashboard renders it as the
+    ``ROOT_FILES`` row above the regular worker rows.
+    """
+    JOB_NAME = "ROOT_FILES"
+    WORKER_SLOT = 0
+
+    worker_log = Path(args.log_dir) / "root-files-job.log"
+    dsm_log_dir = Path(args.log_dir) / "root-files-dsm"
+    dsm_log_dir.mkdir(parents=True, exist_ok=True)
+
+    environment = os.environ.copy()
+    environment["DSM_LOG"] = str(dsm_log_dir)
+
+    # ---- Step 1: collect eligible files ----
+    worker_states.set_custom_status(WORKER_SLOT, "scanning", f"scanning {root}")
+    files = collect_root_files(root, excluded_paths)
+    logger.write(
+        f"{JOB_NAME}: found {len(files)} eligible non-directory "
+        f"{'entry' if len(files) == 1 else 'entries'} under {root!r}"
+    )
+
+    if not files:
+        logger.write(f"{JOB_NAME}: no eligible files directly under {root!r}; job skipped")
+        worker_states.set_custom_status(WORKER_SLOT, "skipped", "no files under /")
+        return
+
+    chunks = chunk_root_files(files)
+    total_files = len(files)
+    total_chunks = len(chunks)
+    logger.write(f"{JOB_NAME}: {total_files} file(s) → {total_chunks} chunk(s)")
+
+    # ---- Step 2: initialise dashboard slot ----
+    worker_states.start_batch(WORKER_SLOT, total_chunks)
+    worker_states.set_custom_status(
+        WORKER_SLOT,
+        "running",
+        f"{total_files} file(s), {total_chunks} chunk(s)",
+    )
+
+    try:
+        with worker_log.open("ab", buffering=0) as output:
+            output.write(
+                (
+                    f"\n===== {time.strftime('%Y-%m-%d %H:%M:%S')} =====\n"
+                    f"ROOT_FILES job: {total_files} file(s), {total_chunks} chunk(s)\n"
+                ).encode("utf-8", errors="backslashreplace")
+            )
+
+            for chunk_idx, chunk_files in enumerate(chunks, start=1):
+                if stop_event.is_set():
+                    break
+
+                label = f"chunk {chunk_idx}/{total_chunks}"
+                worker_states.set_directory(WORKER_SLOT, chunk_idx, label)
+
+                # Build explicit-file command.  -subdir=no is not needed because
+                # we are passing individual file paths, not a directory operand.
+                command = [
+                    args.dsmc,
+                    "incremental",
+                    f"-resourceutilization={args.resourceutilization}",
+                    *args.dsmc_option,
+                    *chunk_files,
+                ]
+
+                output.write(
+                    (
+                        f"\n--- {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n"
+                        f"{JOB_NAME} {label}: {len(chunk_files)} file(s)\n"
+                    ).encode("utf-8", errors="backslashreplace")
+                )
+
+                return_code = 0
+                inv_stats = DsmcInvocationStats()
+                try:
+                    if args.dry_run:
+                        output.write(
+                            ("DRY RUN: " + repr(command) + "\n").encode(
+                                "utf-8", errors="backslashreplace"
+                            )
+                        )
+                    else:
+                        return_code, inv_stats = run_dsmc_supervised(
+                            command=command,
+                            env=environment,
+                            output_file=output,
+                            worker_number=WORKER_SLOT,
+                            worker_states=worker_states,
+                            global_stats=global_stats,
+                            logger=logger,
+                            worker_name=JOB_NAME,
+                            dsmc_timeout=args.dsmc_timeout,
+                            dsmc_idle_timeout=args.dsmc_idle_timeout,
+                            stop_event=stop_event,
+                        )
+                        if inv_stats.has_data():
+                            global_stats.add_invocation(inv_stats)
+                except OSError as exc:
+                    return_code = 127
+                    logger.write(f"{JOB_NAME}: OS error running dsmc: {exc}")
+
+                worker_states.set_result(WORKER_SLOT, return_code, inv_stats)
+
+                if return_code == TIMEOUT_RC:
+                    logger.write(f"{JOB_NAME}: HARD TIMEOUT on {label}")
+                    failed_logger.write(
+                        f"{return_code}\t{root} [{label}]\t# hard timeout"
+                    )
+                elif return_code == IDLE_TIMEOUT_RC:
+                    logger.write(f"{JOB_NAME}: IDLE TIMEOUT on {label}")
+                    failed_logger.write(
+                        f"{return_code}\t{root} [{label}]\t# idle timeout"
+                    )
+                elif return_code <= MAX_DSMC_SUCCESS_RC:
+                    logger.write(
+                        f"{JOB_NAME}: completed {label} rc={return_code}"
+                    )
+                else:
+                    logger.write(
+                        f"{JOB_NAME}: FAILED {label} rc={return_code}"
+                    )
+                    failed_logger.write(f"{return_code}\t{root} [{label}]")
+
+    finally:
+        worker_states.idle(WORKER_SLOT)
+        worker_states.stopped(WORKER_SLOT)
 
 
 def get_batch(
@@ -1491,7 +1774,9 @@ def main() -> int:
     failed_logger = SafeAppender(failed_path)
     counters = Counters()
     global_stats = GlobalDsmcStats()
-    worker_states = WorkerStates(args.streams)
+    # When the crawl root is /, allocate slot 0 for the ROOT_FILES special job.
+    is_root_crawl = (root == os.sep)
+    worker_states = WorkerStates(args.streams, has_root_files_job=is_root_crawl)
     work_queue: queue.Queue[str] = queue.Queue(maxsize=args.queue_size)
     producer_done = threading.Event()
     stop_event = threading.Event()
@@ -1499,8 +1784,14 @@ def main() -> int:
     logger.write(
         f"START root={root} streams={args.streams} batch_size={args.batch_size} "
         f"dry_run={args.dry_run} dashboard={dashboard_enabled} "
-        f"dsmc_timeout={args.dsmc_timeout} dsmc_idle_timeout={args.dsmc_idle_timeout}"
+        f"dsmc_timeout={args.dsmc_timeout} dsmc_idle_timeout={args.dsmc_idle_timeout} "
+        f"root_files_job={is_root_crawl}"
     )
+    if is_root_crawl:
+        logger.write(
+            "INFO: crawl root is /; / will not be submitted as an ordinary directory job. "
+            "Non-directory entries under / are handled by the dedicated ROOT_FILES job."
+        )
 
     if log_dir_norm in excluded_paths_set:
         logger.write(
@@ -1554,6 +1845,25 @@ def main() -> int:
         for number in range(1, args.streams + 1)
     ]
 
+    # When crawl root is /, start the dedicated ROOT_FILES job thread.
+    root_files_thread: threading.Thread | None = None
+    if is_root_crawl:
+        root_files_thread = threading.Thread(
+            name="root-files-job",
+            target=run_root_files_job,
+            args=(
+                args,
+                root,
+                excluded_paths,
+                worker_states,
+                global_stats,
+                logger,
+                failed_logger,
+                stop_event,
+            ),
+            daemon=False,  # not a daemon: we explicitly join it to ensure proper accounting
+        )
+
     reporter: threading.Thread | None = None
     dashboard: Dashboard | None = None
     if dashboard_enabled:
@@ -1591,6 +1901,8 @@ def main() -> int:
             thread.start()
         reporter.start()
         producer.start()
+        if root_files_thread is not None:
+            root_files_thread.start()
 
         # Normal flow: wait for the scanner to finish (no timeout — scans can take
         # arbitrarily long and a fixed timeout would prematurely stop large runs).
@@ -1603,12 +1915,17 @@ def main() -> int:
         for thread in workers:
             thread.join()
 
+        # The root-files job runs in parallel with the scanner and workers and may
+        # finish at any point; wait for it here to ensure complete accounting.
+        if root_files_thread is not None:
+            root_files_thread.join()
+
     except KeyboardInterrupt:
         logger.write("INTERRUPTED: requesting stop; terminating active dsmc children")
         stop_event.set()
         producer_done.set()
         # Workers check stop_event; run_dsmc_supervised will kill child processes.
-        for thread in workers:
+        for thread in [*workers, root_files_thread] if root_files_thread else workers:
             thread.join(timeout=args.shutdown_wait_seconds)
             if thread.is_alive():
                 logger.write(
@@ -1634,12 +1951,30 @@ def main() -> int:
     )
 
     # Reconciliation: every discovered directory should be accounted for.
+    # Note: when root is /, it is never enqueued as an ordinary directory, so
+    # the counters correctly exclude it.
     if completed + failed != discovered:
         logger.write(
             f"WARNING: counter mismatch — discovered={discovered} but "
             f"completed+failed={completed + failed} "
             f"(unaccounted: {discovered - completed - failed})"
         )
+
+    # Root-files job summary (only when crawl root is /)
+    if is_root_crawl:
+        all_states = worker_states.snapshot()
+        root_state = next((s for s in all_states if s.worker_number == 0), None)
+        if root_state is not None:
+            rf_status = root_state.status
+            rf_ok = root_state.dirs_completed
+            rf_fail = root_state.dirs_failed
+            rf_timeout = root_state.dirs_timed_out
+            rf_total = root_state.batch_total
+            logger.write(
+                f"ROOT_FILES summary: status={rf_status} "
+                f"chunks_ok={rf_ok} chunks_failed={rf_fail} "
+                f"chunks_timed_out={rf_timeout} total_chunks={rf_total}"
+            )
 
     if not dashboard_enabled:
         print(

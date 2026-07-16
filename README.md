@@ -17,6 +17,70 @@ Parallel IBM Storage Protect (`dsmc`) crawler for one mounted filesystem.
 3. A **dashboard** (or periodic progress lines for non-TTY output) shows the
    live state of the scanner, queue, and every worker.
 
+## Special handling of the filesystem root (/)
+
+When the crawl entry point is exactly `/`, the script uses `/` as a
+**traversal anchor only** and never submits it to `dsmc` as an ordinary
+directory job.  Passing `/` to `dsmc incremental` can be interpreted by IBM
+Storage Protect as a full filesystem/volume backup, which may take orders of
+magnitude longer than a per-directory invocation.
+
+### What happens instead
+
+| Component | Behaviour |
+|---|---|
+| **Scanner** | Scans `/` for child directories, then traverses them recursively as normal.  `/` itself is **not** enqueued in the work queue. |
+| **ROOT_FILES job** | A dedicated background thread (dashboard row `ROOT_FILES`, worker slot 0) collects every non-directory entry directly under `/` and invokes `dsmc incremental` with those entries as **explicit file operands**. |
+| **Regular workers** | Receive all child directories of `/` through the normal dynamic queue, as if the entry point had been any other directory. |
+
+### ROOT_FILES command strategy
+
+The job builds commands like:
+
+```bash
+dsmc incremental -resourceutilization=2 /etc.conf /initrd.img /vmlinuz …
+```
+
+Explicit file operands tell `dsmc` to back up only those exact entries.  There
+is no `-subdir=no` flag because no directory operand is passed; recursion is
+not possible.
+
+If the combined length of the file-path arguments would exceed 128 KB (well
+below the Linux `ARG_MAX`), the list is automatically split into multiple
+chunks.  Each chunk is a separate `dsmc` invocation tracked individually in
+the dashboard and logs.
+
+### Symlink policy
+
+Symlinks directly under `/` are included in the ROOT_FILES job because
+`DirEntry.is_dir(follow_symlinks=False)` returns `False` for all symlinks
+(even those pointing at directories).  They are backed up as **link objects**,
+not descended into.  This is consistent with `dsmc`'s default symlink handling.
+
+### No eligible files
+
+If there are no non-directory entries directly under `/`, the ROOT_FILES job
+logs a skip reason and exits without invoking `dsmc`.
+
+### Dashboard row
+
+The `ROOT_FILES` row appears at the top of the worker section:
+
+```
+ROOT_FILES [##########]  1/1  running  b#1  pid=12345  rt:2.3s  idle:0.1s  ok:0 to:0 fl:0  rc=    /file1 /file2 (1 of N chunks)
+```
+
+| Field | Meaning |
+|---|---|
+| `ROOT_FILES` | Label for the special job (slot 0, never confused with a regular worker) |
+| `N/M` | Current chunk / total chunks |
+| `ok:N` | Successfully completed chunks |
+| `fl:N` | Failed chunks |
+| `to:N` | Timed-out chunks |
+
+The ROOT_FILES row disappears from `status=running` once the job finishes, and
+the responsible resources are fully released back to the runtime.
+
 ## Start-up latency note
 
 Individual `dsmc` invocations have substantial session start-up latency —
@@ -102,10 +166,11 @@ Scanner: RUNNING  found=342  q=85/1000  in-prog=10  excl=2  skipped=3  errors=0
 Overall: completed=247  failed=0  (scanning, total growing)
 dsmc:  insp=1  bkup=0  fail=0  retries=0  bytes_i=4.00 KB  bytes_x=0 B  children=4
 --------------------------------------------------------------------------------
-W01 [##########]  8/20 running         b#6   pid=5432   rt:2.3s    idle:0.1s    ok:76 to:0 fl:0  rc=0   /data/subdir/a…
-W02 [####------]  4/20 quiet           b#5   pid=5431   rt:75.2s   idle:63.1s   ok:60 to:0 fl:1  rc=4   /data/subdir/b…
-W03             --/-- waiting_for_work b#4                          idle:          ok:40 to:0 fl:0        
-W04             --/-- done             b#3                          idle:          ok:20 to:0 fl:0        
+ROOT_FILES [##########]  1/1  running  b#1  pid=9990   rt:5.1s    idle:0.2s    ok:0 to:0 fl:0  rc=    3 files, 1 chunk(s)
+W01        [##########]  8/20 running  b#6  pid=5432   rt:2.3s    idle:0.1s    ok:76 to:0 fl:0  rc=0   /data/subdir/a…
+W02        [####------]  4/20 quiet   b#5  pid=5431   rt:75.2s   idle:63.1s   ok:60 to:0 fl:1  rc=4   /data/subdir/b…
+W03                    --/-- waiting_for_work b#4                 idle:          ok:40 to:0 fl:0        
+W04                    --/-- done     b#3                         idle:          ok:20 to:0 fl:0        
 ```
 
 **Global header rows**
