@@ -226,7 +226,7 @@ _MOUNT_ESCAPE = re.compile(r"\\([0-7]{3})")
 
 
 def decode_mountinfo_path(value: str) -> str:
-    """Decode the octal escapes used in /proc/self/mountinfo."""
+    """Decode octal escapes in /proc/self/mountinfo paths (for example, \\040 for space)."""
     return _MOUNT_ESCAPE.sub(lambda match: chr(int(match.group(1), 8)), value)
 
 
@@ -413,6 +413,7 @@ def worker(
                     for index, path in enumerate(batch, start=1):
                         worker_states.set_directory(worker_number, index, path)
                         operand = dsm_directory_operand(path)
+                        # One directory per invocation keeps worker X/Y progress accurate.
                         command = [
                             args.dsmc,
                             "incremental",
@@ -489,6 +490,10 @@ def progress_reporter(
             return
 
 
+def should_enable_dashboard(no_dashboard: bool) -> bool:
+    return not no_dashboard and sys.stdout.isatty()
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
@@ -529,7 +534,10 @@ def parse_args() -> argparse.Namespace:
         "--resourceutilization",
         type=int,
         default=2,
-        help="dsmc resourceutilization value (default: 2, avoids internal multisession backup)",
+        help=(
+            "dsmc resourceutilization value (default: 2, avoids internal multisession "
+            "backup; valid range: 1-100)"
+        ),
     )
     parser.add_argument(
         "--log-dir",
@@ -591,7 +599,7 @@ def main() -> int:
             return 2
         args.dsmc = resolved_dsmc
 
-    dashboard_enabled = not args.no_dashboard and sys.stdout.isatty()
+    dashboard_enabled = should_enable_dashboard(args.no_dashboard)
 
     log_dir = Path(args.log_dir)
     log_dir.mkdir(parents=True, exist_ok=True)
