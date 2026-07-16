@@ -506,8 +506,8 @@ def progress_reporter(
             return
 
 
-def should_enable_dashboard(no_dashboard: bool) -> bool:
-    return not no_dashboard and sys.stdout.isatty()
+def should_enable_dashboard(dashboard_disabled: bool) -> bool:
+    return not dashboard_disabled and sys.stdout.isatty()
 
 
 def parse_args() -> argparse.Namespace:
@@ -595,7 +595,7 @@ def parse_args() -> argparse.Namespace:
     if args.queue_size < args.streams:
         parser.error("--queue-size must be at least the number of streams")
     if not 1 <= args.resourceutilization <= 100:
-        parser.error("--resourceutilization must be between 1 and 100")
+        parser.error("--resourceutilization must be between 1 and 100 (inclusive)")
     if args.progress_seconds < 1:
         parser.error("--progress-seconds must be at least 1")
     if args.dashboard_refresh_seconds <= 0:
