@@ -395,8 +395,8 @@ def worker(
 
             worker_states.start_batch(worker_number, len(batch))
             logger.write(
-                f"{worker_name}: reserved {len(batch)} director"
-                f"{'y' if len(batch) == 1 else 'ies'}"
+                f"{worker_name}: reserved {len(batch)} "
+                f"{'directory' if len(batch) == 1 else 'directories'}"
             )
 
             try:
@@ -416,7 +416,6 @@ def worker(
                         command = [
                             args.dsmc,
                             "incremental",
-                            "-removeoperandlimit",
                             "-subdir=no",
                             f"-resourceutilization={args.resourceutilization}",
                             *args.dsmc_option,
