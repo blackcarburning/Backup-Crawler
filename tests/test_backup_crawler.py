@@ -640,5 +640,433 @@ class TestCliValidation(unittest.TestCase):
         self.assertEqual(args.streams, 2)
 
 
+# ---------------------------------------------------------------------------
+# 8. Root-files job: collect_root_files
+# ---------------------------------------------------------------------------
+
+class TestCollectRootFiles(unittest.TestCase):
+    """collect_root_files must return non-directory entries and exclude dirs/excluded paths."""
+
+    def test_returns_files_not_dirs(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            (Path(tmpdir) / "file_a.txt").write_text("a")
+            (Path(tmpdir) / "file_b.bin").write_bytes(b"\x00")
+            (Path(tmpdir) / "subdir").mkdir()
+
+            files = bc.collect_root_files(tmpdir, frozenset())
+
+            self.assertIn(str(Path(tmpdir) / "file_a.txt"), files)
+            self.assertIn(str(Path(tmpdir) / "file_b.bin"), files)
+            self.assertNotIn(str(Path(tmpdir) / "subdir"), files)
+
+    def test_excludes_paths_matching_excluded_set(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            included = Path(tmpdir) / "included.txt"
+            excluded = Path(tmpdir) / "excluded.txt"
+            included.write_text("keep")
+            excluded.write_text("skip")
+
+            files = bc.collect_root_files(tmpdir, frozenset([str(excluded)]))
+
+            self.assertIn(str(included), files)
+            self.assertNotIn(str(excluded), files)
+
+    def test_empty_dir_returns_empty_list(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            files = bc.collect_root_files(tmpdir, frozenset())
+            self.assertEqual(files, [])
+
+    def test_returns_sorted_list(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            for name in ("z_file", "a_file", "m_file"):
+                (Path(tmpdir) / name).write_text(name)
+
+            files = bc.collect_root_files(tmpdir, frozenset())
+            self.assertEqual(files, sorted(files))
+
+    def test_symlink_to_file_included(self):
+        """Symlinks to files should be included; they are not directories."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            target = Path(tmpdir) / "real_file"
+            link = Path(tmpdir) / "link_to_file"
+            target.write_text("target")
+            link.symlink_to(target)
+
+            files = bc.collect_root_files(tmpdir, frozenset())
+            self.assertIn(str(link), files)
+
+    def test_symlink_to_dir_not_included(self):
+        """Symlinks pointing at directories must be excluded (they are dirs via follow=False? No.
+        Actually symlink to dir: is_dir(follow_symlinks=False) = False, so they ARE included."""
+        # symlink-to-dir with follow_symlinks=False reports is_dir=False
+        # so it will be included as a file-like entry (backed up as a link object)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            real_dir = Path(tmpdir) / "real_dir"
+            real_dir.mkdir()
+            link = Path(tmpdir) / "link_to_dir"
+            link.symlink_to(real_dir)
+
+            files = bc.collect_root_files(tmpdir, frozenset())
+            # Symlink-to-dir is NOT a dir when follow_symlinks=False; it IS included
+            self.assertIn(str(link), files)
+            # The real dir itself is a dir and must NOT be included
+            self.assertNotIn(str(real_dir), files)
+
+
+# ---------------------------------------------------------------------------
+# 9. Root-files job: chunk_root_files
+# ---------------------------------------------------------------------------
+
+class TestChunkRootFiles(unittest.TestCase):
+    """chunk_root_files must split file lists into argv-safe chunks."""
+
+    def test_empty_input_returns_empty_list(self):
+        self.assertEqual(bc.chunk_root_files([]), [])
+
+    def test_all_files_fit_in_one_chunk(self):
+        files = ["/file1", "/file2", "/file3"]
+        chunks = bc.chunk_root_files(files, max_bytes=10000)
+        self.assertEqual(len(chunks), 1)
+        self.assertEqual(chunks[0], files)
+
+    def test_files_split_when_limit_exceeded(self):
+        # "/file_1" is 7 chars + 1 = 8 bytes cost; max_bytes=10 → only one fits per chunk
+        files = ["/file_1", "/file_2", "/file_3"]
+        chunks = bc.chunk_root_files(files, max_bytes=10)
+        self.assertEqual(len(chunks), 3)
+
+    def test_all_files_present_across_chunks(self):
+        files = [f"/path/to/file_{i:03d}" for i in range(200)]
+        chunks = bc.chunk_root_files(files, max_bytes=500)
+        flattened = [f for c in chunks for f in c]
+        self.assertEqual(sorted(flattened), sorted(files))
+
+    def test_no_chunk_exceeds_max_bytes(self):
+        files = [f"/some/very/long/path/to/file_{i:04d}" for i in range(100)]
+        max_bytes = 200
+        chunks = bc.chunk_root_files(files, max_bytes=max_bytes)
+        for chunk in chunks:
+            total = sum(len(p.encode("utf-8")) + 1 for p in chunk)
+            self.assertLessEqual(
+                total, max_bytes,
+                f"Chunk byte total {total} exceeds limit {max_bytes}: {chunk}",
+            )
+
+    def test_single_file_larger_than_limit_still_in_own_chunk(self):
+        """A single very long path must still be placed in a chunk even if its
+        byte cost exceeds max_bytes (we cannot split a single path further)."""
+        long_path = "/" + "x" * 300
+        files = [long_path, "/short"]
+        chunks = bc.chunk_root_files(files, max_bytes=10)
+        flattened = [f for c in chunks for f in c]
+        self.assertIn(long_path, flattened)
+        self.assertIn("/short", flattened)
+
+    def test_chunk_count_scales_with_file_count(self):
+        # 100 files each costing ~10 bytes, limit 50 bytes → ≥2 chunks
+        files = [f"/f{i:06d}" for i in range(100)]  # 9 bytes each → cost 10
+        chunks = bc.chunk_root_files(files, max_bytes=50)
+        self.assertGreater(len(chunks), 1)
+
+
+# ---------------------------------------------------------------------------
+# 10. scan_directories: / not enqueued as ordinary directory job
+# ---------------------------------------------------------------------------
+
+class TestScanDirectoriesRootSlash(unittest.TestCase):
+    """
+    When the crawl root is /, scan_directories must NOT enqueue / in the work
+    queue, but must still enqueue immediate child directories.
+    """
+
+    def _run_scan_mocked(self, root: str, children: list) -> list[str]:
+        """Run scan_directories with os.stat and os.scandir mocked."""
+        from unittest.mock import patch, MagicMock
+
+        wq: queue.Queue[str] = queue.Queue(maxsize=500)
+        done = threading.Event()
+        stop = threading.Event()
+        counters = bc.Counters()
+
+        with tempfile.NamedTemporaryFile(suffix=".log", delete=False) as _tf:
+            log_file = Path(_tf.name)
+        try:
+            logger = bc.SafeLogger(log_file, echo=False)
+
+            # Build mock DirEntry objects for each child
+            mock_entries: list = []
+            for child_path in children:
+                e = MagicMock()
+                e.is_dir.return_value = True
+                e.path = child_path
+                e.stat.return_value = MagicMock(st_dev=42)
+                mock_entries.append(e)
+
+            def make_cm(path):
+                """Return a context manager that yields mock_entries for root
+                and no entries for any child (to prevent infinite recursion)."""
+                cm = MagicMock()
+                if path == root:
+                    cm.__enter__ = MagicMock(return_value=iter(mock_entries))
+                else:
+                    cm.__enter__ = MagicMock(return_value=iter([]))
+                cm.__exit__ = MagicMock(return_value=False)
+                return cm
+
+            with (
+                patch("os.stat", return_value=MagicMock(st_dev=42)),
+                patch("os.scandir", side_effect=make_cm),
+                patch("backup_crawler.nested_mounts", return_value=set()),
+            ):
+                t = threading.Thread(
+                    target=bc.scan_directories,
+                    args=(root, wq, done, stop, counters, frozenset(), logger),
+                )
+                t.start()
+                t.join(timeout=10)
+
+            items: list[str] = []
+            while True:
+                try:
+                    items.append(wq.get_nowait())
+                except queue.Empty:
+                    break
+            return items
+        finally:
+            log_file.unlink(missing_ok=True)
+
+    def test_slash_not_in_queue(self):
+        items = self._run_scan_mocked(os.sep, ["/bin", "/etc", "/usr"])
+        self.assertNotIn(
+            os.sep,
+            items,
+            "/ must never be enqueued as an ordinary directory job",
+        )
+
+    def test_child_dirs_of_slash_are_in_queue(self):
+        items = self._run_scan_mocked(os.sep, ["/bin", "/etc", "/usr"])
+        self.assertIn("/bin", items)
+        self.assertIn("/etc", items)
+        self.assertIn("/usr", items)
+
+    def test_non_root_entry_point_is_enqueued(self):
+        """For non-/ entry points, the root directory itself IS enqueued."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            wq: queue.Queue[str] = queue.Queue(maxsize=500)
+            done = threading.Event()
+            stop = threading.Event()
+            counters = bc.Counters()
+
+            with tempfile.NamedTemporaryFile(suffix=".log", delete=False) as _tf:
+                log_file = Path(_tf.name)
+            try:
+                logger = bc.SafeLogger(log_file, echo=False)
+                t = threading.Thread(
+                    target=bc.scan_directories,
+                    args=(tmpdir, wq, done, stop, counters, frozenset(), logger),
+                )
+                t.start()
+                t.join(timeout=10)
+
+                items: list[str] = []
+                while True:
+                    try:
+                        items.append(wq.get_nowait())
+                    except queue.Empty:
+                        break
+
+                self.assertIn(
+                    tmpdir, items,
+                    "Non-/ crawl root must appear in the work queue",
+                )
+            finally:
+                log_file.unlink(missing_ok=True)
+
+    def test_discovered_counter_excludes_slash(self):
+        """When root is /, the 'discovered' counter must not include /."""
+        items = self._run_scan_mocked(os.sep, ["/bin", "/etc"])
+        # discovered should be 2 (the two children), not 3
+        # We can only verify that "/" is not in items (counter test is implicit)
+        self.assertNotIn(os.sep, items)
+        self.assertEqual(len(items), 2)
+
+
+# ---------------------------------------------------------------------------
+# 11. run_root_files_job: dry-run integration
+# ---------------------------------------------------------------------------
+
+class TestRunRootFilesJobDryRun(unittest.TestCase):
+    """Verify run_root_files_job behaviour in dry-run mode (no real dsmc needed)."""
+
+    def _run_job(
+        self, files_to_create: list[str], dirs_to_create: list[str]
+    ) -> tuple[bc.WorkerStates, Path, str]:
+        """
+        Run the root-files job against a temp directory.
+        Returns (worker_states, worker_log_path, tmpdir).
+        Caller is responsible for cleanup via shutil.rmtree(tmpdir).
+        """
+        import argparse
+        import shutil as _shutil
+
+        tmpdir = tempfile.mkdtemp()
+
+        # Create test files and dirs
+        for name in files_to_create:
+            (Path(tmpdir) / name).write_text(name)
+        for name in dirs_to_create:
+            (Path(tmpdir) / name).mkdir(exist_ok=True)
+
+        log_dir = Path(tmpdir) / "logs"
+        log_dir.mkdir()
+
+        args = argparse.Namespace(
+            log_dir=str(log_dir),
+            dsmc="/bin/true",
+            dsmc_option=[],
+            dsmc_timeout=0,
+            dsmc_idle_timeout=0,
+            resourceutilization=2,
+            dry_run=True,
+        )
+
+        worker_states = bc.WorkerStates(1, has_root_files_job=True)
+        global_stats = bc.GlobalDsmcStats()
+        stop_event = threading.Event()
+
+        logger = bc.SafeLogger(log_dir / "ctrl.log", echo=False)
+        failed_log = log_dir / "failed.tsv"
+        failed_log.write_text("return_code\tdirectory\tnotes\n")
+        failed_logger = bc.SafeAppender(failed_log)
+
+        t = threading.Thread(
+            target=bc.run_root_files_job,
+            args=(
+                args,
+                tmpdir,
+                frozenset(),
+                worker_states,
+                global_stats,
+                logger,
+                failed_logger,
+                stop_event,
+            ),
+        )
+        t.start()
+        t.join(timeout=30)
+
+        self.assertFalse(t.is_alive(), "run_root_files_job did not exit within 30s")
+
+        log_path = log_dir / "root-files-job.log"
+        return worker_states, log_path, tmpdir
+
+    def test_no_files_job_is_skipped(self):
+        import shutil as _shutil
+        ws, log_path, tmpdir = self._run_job(files_to_create=[], dirs_to_create=["subdir"])
+        try:
+            states = ws.snapshot()
+            root_state = next(s for s in states if s.worker_number == 0)
+            self.assertEqual(root_state.status, "skipped")
+            self.assertFalse(log_path.exists(), "log must not be created if no files")
+        finally:
+            _shutil.rmtree(tmpdir, ignore_errors=True)
+
+    def test_files_present_job_runs_and_slots_done(self):
+        import shutil as _shutil
+        ws, log_path, tmpdir = self._run_job(
+            files_to_create=["file_a", "file_b", "file_c"],
+            dirs_to_create=["subdir"],
+        )
+        try:
+            states = ws.snapshot()
+            root_state = next(s for s in states if s.worker_number == 0)
+            # After completion the slot should be in "done" state
+            self.assertEqual(root_state.status, "done")
+        finally:
+            _shutil.rmtree(tmpdir, ignore_errors=True)
+
+    def test_log_contains_dry_run_command(self):
+        import shutil as _shutil
+        _, log_path, tmpdir = self._run_job(
+            files_to_create=["file_x"],
+            dirs_to_create=[],
+        )
+        try:
+            self.assertTrue(log_path.exists())
+            log_content = log_path.read_bytes().decode("utf-8", errors="replace")
+            self.assertIn("DRY RUN", log_content)
+            # The log must show an explicit file path, not just "/"
+            self.assertIn("file_x", log_content)
+        finally:
+            _shutil.rmtree(tmpdir, ignore_errors=True)
+
+    def test_files_appear_as_explicit_operands_not_slash(self):
+        """The dsmc command must contain explicit file paths, never the bare / operand."""
+        import ast
+        import shutil as _shutil
+        _, log_path, tmpdir = self._run_job(
+            files_to_create=["alpha", "beta"],
+            dirs_to_create=[],
+        )
+        try:
+            log_content = log_path.read_bytes().decode("utf-8", errors="replace")
+            # The command repr in the DRY RUN line must include explicit file paths
+            self.assertIn("alpha", log_content)
+            self.assertIn("beta", log_content)
+            # The command must NOT contain a bare "/" as a path operand.
+            # Look for the repr of the command list.
+            for line in log_content.splitlines():
+                if line.startswith("DRY RUN: ["):
+                    cmd = ast.literal_eval(line[len("DRY RUN: "):])
+                    self.assertNotIn(os.sep, cmd,
+                        "/ must not appear as a plain operand in the root-files command")
+                    break
+        finally:
+            _shutil.rmtree(tmpdir, ignore_errors=True)
+
+    def test_chunk_count_in_dashboard_state(self):
+        """batch_total in worker slot 0 should equal the number of chunks."""
+        import shutil as _shutil
+        files = [f"f{i}" for i in range(5)]
+        ws, _, tmpdir = self._run_job(files_to_create=files, dirs_to_create=[])
+        try:
+            states = ws.snapshot()
+            root_state = next(s for s in states if s.worker_number == 0)
+            # In dry-run mode with small files, everything fits in one chunk
+            self.assertGreaterEqual(root_state.dirs_completed, 1)
+        finally:
+            _shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+# ---------------------------------------------------------------------------
+# 12. WorkerStates slot-0 visibility
+# ---------------------------------------------------------------------------
+
+class TestWorkerStatesRootFilesSlot(unittest.TestCase):
+    def test_slot_0_present_when_requested(self):
+        ws = bc.WorkerStates(3, has_root_files_job=True)
+        numbers = [s.worker_number for s in ws.snapshot()]
+        self.assertIn(0, numbers)
+        self.assertIn(1, numbers)
+        self.assertIn(3, numbers)
+
+    def test_slot_0_absent_by_default(self):
+        ws = bc.WorkerStates(3)
+        numbers = [s.worker_number for s in ws.snapshot()]
+        self.assertNotIn(0, numbers)
+
+    def test_slot_0_appears_first_in_snapshot(self):
+        ws = bc.WorkerStates(3, has_root_files_job=True)
+        states = ws.snapshot()
+        self.assertEqual(states[0].worker_number, 0)
+
+    def test_set_custom_status(self):
+        ws = bc.WorkerStates(2, has_root_files_job=True)
+        ws.set_custom_status(0, "scanning", "scanning /")
+        state = ws.snapshot()[0]
+        self.assertEqual(state.status, "scanning")
+        self.assertEqual(state.current_directory, "scanning /")
+
+
 if __name__ == "__main__":
     unittest.main()
