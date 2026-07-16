@@ -226,7 +226,7 @@ _MOUNT_ESCAPE = re.compile(r"\\([0-7]{3})")
 
 
 def decode_mountinfo_path(value: str) -> str:
-    """Decode octal escapes in /proc/self/mountinfo paths (such as \\\\040 for space)."""
+    """Decode octal escapes in /proc/self/mountinfo paths (such as \\040 for space)."""
     return _MOUNT_ESCAPE.sub(lambda match: chr(int(match.group(1), 8)), value)
 
 
@@ -557,6 +557,12 @@ def parse_args() -> argparse.Namespace:
         help="Dashboard refresh interval in seconds (default: 1.0)",
     )
     parser.add_argument(
+        "--shutdown-wait-seconds",
+        type=int,
+        default=30,
+        help="Seconds to wait for producer/workers to exit during shutdown (default: 30)",
+    )
+    parser.add_argument(
         "--no-dashboard",
         action="store_true",
         help="Disable live dashboard and use plain progress output",
@@ -578,6 +584,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("--progress-seconds must be at least 1")
     if args.dashboard_refresh_seconds <= 0:
         parser.error("--dashboard-refresh-seconds must be greater than 0")
+    if args.shutdown_wait_seconds < 1:
+        parser.error("--shutdown-wait-seconds must be at least 1")
 
     return args
 
@@ -694,14 +702,14 @@ def main() -> int:
         reporter.start()
         producer.start()
 
-        producer.join(timeout=30)
+        producer.join(timeout=args.shutdown_wait_seconds)
         if producer.is_alive():
             logger.write("WARNING: producer thread did not exit in time; requesting stop")
             stop_event.set()
             producer_done.set()
         work_queue.join()
         for thread in workers:
-            thread.join(timeout=5)
+            thread.join(timeout=args.shutdown_wait_seconds)
             if thread.is_alive():
                 logger.write(f"WARNING: {thread.name} did not exit in time")
     except KeyboardInterrupt:
