@@ -97,3 +97,2346 @@ DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/tmp/n
 --- 2026-07-16 14:50:42 ---
 Directory 2/2: /tmp/systemd-private-bbf15b237efd4e12afd451ef6279f46e-systemd-logind.service-cMj7Sf/
 DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/tmp/systemd-private-bbf15b237efd4e12afd451ef6279f46e-systemd-logind.service-cMj7Sf/']
+
+===== 2026-07-16 15:33:38 =====
+Batch size: 1
+/etc/apache2/
+
+--- 2026-07-16 15:33:38 ---
+Directory 1/1: /etc/apache2/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apache2/']
+
+===== 2026-07-16 15:33:38 =====
+Batch size: 1
+/etc/apache2/sites-available/
+
+--- 2026-07-16 15:33:38 ---
+Directory 1/1: /etc/apache2/sites-available/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apache2/sites-available/']
+
+===== 2026-07-16 15:33:38 =====
+Batch size: 1
+/etc/apache2/mods-enabled/
+
+--- 2026-07-16 15:33:38 ---
+Directory 1/1: /etc/apache2/mods-enabled/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apache2/mods-enabled/']
+
+===== 2026-07-16 15:33:38 =====
+Batch size: 1
+/etc/apache2/mods-available/
+
+--- 2026-07-16 15:33:38 ---
+Directory 1/1: /etc/apache2/mods-available/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apache2/mods-available/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/apache2/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/apache2/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apache2/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/terminfo/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/terminfo/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/terminfo/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/apt/auth.conf.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/apt/auth.conf.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apt/auth.conf.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 5
+/etc/apt/apt.conf.d/
+/etc/apt/sources.list.d/
+/etc/apt/keyrings/
+/etc/apt/preferences.d/
+/etc/apparmor.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/5: /etc/apt/apt.conf.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apt/apt.conf.d/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/5: /etc/apt/sources.list.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apt/sources.list.d/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 3/5: /etc/apt/keyrings/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apt/keyrings/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 4/5: /etc/apt/preferences.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apt/preferences.d/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 5/5: /etc/apparmor.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apparmor.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/apparmor.d/tunables/home.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/apparmor.d/tunables/home.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apparmor.d/tunables/home.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 9
+/etc/apparmor.d/tunables/xdg-user-dirs.d/
+/etc/apparmor.d/rsyslog.d/
+/etc/apparmor.d/disable/
+/etc/apparmor.d/force-complain/
+/etc/nvme/
+/etc/sensors.d/
+/etc/polkit-1/
+/etc/polkit-1/rules.d/
+/etc/logcheck/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/9: /etc/apparmor.d/tunables/xdg-user-dirs.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apparmor.d/tunables/xdg-user-dirs.d/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/9: /etc/apparmor.d/rsyslog.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apparmor.d/rsyslog.d/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 3/9: /etc/apparmor.d/disable/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apparmor.d/disable/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 4/9: /etc/apparmor.d/force-complain/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apparmor.d/force-complain/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 5/9: /etc/nvme/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/nvme/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 6/9: /etc/sensors.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/sensors.d/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 7/9: /etc/polkit-1/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/polkit-1/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 8/9: /etc/polkit-1/rules.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/polkit-1/rules.d/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 9/9: /etc/logcheck/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/logcheck/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/logcheck/violations.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/logcheck/violations.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/logcheck/violations.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/credstore/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/credstore/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/credstore/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/dhcp/dhclient-exit-hooks.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/dhcp/dhclient-exit-hooks.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/dhcp/dhclient-exit-hooks.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 2
+/etc/multipath/
+/etc/apport/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/2: /etc/multipath/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/multipath/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/2: /etc/apport/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apport/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/apport/report-ignore/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/apport/report-ignore/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apport/report-ignore/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/postgresql-common/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/postgresql-common/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/postgresql-common/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/ppp/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/ppp/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/ppp/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/ppp/ip-down.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/ppp/ip-down.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/ppp/ip-down.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/sos/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/sos/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/sos/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/sos/extras.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/sos/extras.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/sos/extras.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/sos/groups.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/sos/groups.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/sos/groups.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/fwupd/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/fwupd/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/fwupd/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/fwupd/bios-settings.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/fwupd/bios-settings.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/fwupd/bios-settings.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/network/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/network/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/network/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/network/if-pre-up.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/network/if-pre-up.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/network/if-pre-up.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/needrestart/conf.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/needrestart/conf.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/needrestart/conf.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/needrestart/hook.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/needrestart/hook.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/needrestart/hook.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 2
+/etc/tmpfiles.d/
+/etc/update-notifier/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/2: /etc/tmpfiles.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/tmpfiles.d/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/2: /etc/update-notifier/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/update-notifier/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/mercurial/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/mercurial/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/mercurial/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/cron.daily/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/cron.daily/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/cron.daily/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/keyutils/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/keyutils/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/keyutils/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/profile.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/profile.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/profile.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 2
+/etc/python3.12/
+/etc/usb_modeswitch.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/2: /etc/python3.12/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/python3.12/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/2: /etc/usb_modeswitch.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/usb_modeswitch.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 2
+/etc/chrony/sources.d/
+/etc/cni/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/2: /etc/chrony/sources.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/chrony/sources.d/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/2: /etc/cni/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/cni/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/cron.weekly/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/cron.weekly/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/cron.weekly/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/rc5.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/rc5.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/rc5.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 3
+/etc/dbus-1/
+/etc/dbus-1/system.d/
+/etc/dbus-1/session.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/3: /etc/dbus-1/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/dbus-1/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/3: /etc/dbus-1/system.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/dbus-1/system.d/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 3/3: /etc/dbus-1/session.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/dbus-1/session.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 2
+/etc/libblockdev/3/
+/etc/libblockdev/3/conf.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/2: /etc/libblockdev/3/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/libblockdev/3/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/2: /etc/libblockdev/3/conf.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/libblockdev/3/conf.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/mysql/mysql.conf.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/mysql/mysql.conf.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/mysql/mysql.conf.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 2
+/etc/binfmt.d/
+/etc/xdg/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/2: /etc/binfmt.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/binfmt.d/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/2: /etc/xdg/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/xdg/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 3
+/etc/xdg/autostart/
+/etc/modprobe.d/
+/etc/ldap/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/3: /etc/xdg/autostart/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/xdg/autostart/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/3: /etc/modprobe.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/modprobe.d/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 3/3: /etc/ldap/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/ldap/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/pm/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/pm/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/pm/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/ssh/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/ssh/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/ssh/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/ssh/ssh_config.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/ssh/ssh_config.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/ssh/ssh_config.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/initramfs-tools/conf.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/initramfs-tools/conf.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/initramfs-tools/conf.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/initramfs-tools/scripts/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/initramfs-tools/scripts/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/initramfs-tools/scripts/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/initramfs-tools/scripts/local-bottom/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/initramfs-tools/scripts/local-bottom/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/initramfs-tools/scripts/local-bottom/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/initramfs-tools/scripts/init-top/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/initramfs-tools/scripts/init-top/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/initramfs-tools/scripts/init-top/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/initramfs-tools/scripts/nfs-bottom/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/initramfs-tools/scripts/nfs-bottom/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/initramfs-tools/scripts/nfs-bottom/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/initramfs-tools/scripts/nfs-premount/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/initramfs-tools/scripts/nfs-premount/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/initramfs-tools/scripts/nfs-premount/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/initramfs-tools/scripts/init-bottom/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/initramfs-tools/scripts/init-bottom/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/initramfs-tools/scripts/init-bottom/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/ubuntu-advantage/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/ubuntu-advantage/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/ubuntu-advantage/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/debsig/policies/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/debsig/policies/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/debsig/policies/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/debsig/policies/EB3E94ADBE1229CF/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/debsig/policies/EB3E94ADBE1229CF/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/debsig/policies/EB3E94ADBE1229CF/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/cron.monthly/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/cron.monthly/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/cron.monthly/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/php/8.3/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/php/8.3/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/php/8.3/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 2
+/etc/php/8.3/cli/
+/etc/php/8.3/cli/conf.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/2: /etc/php/8.3/cli/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/php/8.3/cli/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/2: /etc/php/8.3/cli/conf.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/php/8.3/cli/conf.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/php/8.3/fpm/pool.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/php/8.3/fpm/pool.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/php/8.3/fpm/pool.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/php/8.3/cgi/conf.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/php/8.3/cgi/conf.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/php/8.3/cgi/conf.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/php/8.3/phpdbg/conf.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/php/8.3/phpdbg/conf.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/php/8.3/phpdbg/conf.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/vulkan/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/vulkan/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/vulkan/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/vulkan/implicit_layer.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/vulkan/implicit_layer.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/vulkan/implicit_layer.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/opt/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/opt/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/opt/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/lighttpd/conf-enabled/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/lighttpd/conf-enabled/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/lighttpd/conf-enabled/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/gtk-3.0/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/gtk-3.0/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/gtk-3.0/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/systemd/user/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/systemd/user/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/systemd/user/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 5
+/etc/systemd/user/sockets.target.wants/
+/etc/systemd/user/timers.target.wants/
+/etc/systemd/system/
+/etc/systemd/system/sockets.target.wants/
+/etc/systemd/system/sleep.target.wants/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/5: /etc/systemd/user/sockets.target.wants/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/systemd/user/sockets.target.wants/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/5: /etc/systemd/user/timers.target.wants/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/systemd/user/timers.target.wants/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 3/5: /etc/systemd/system/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/systemd/system/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 4/5: /etc/systemd/system/sockets.target.wants/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/systemd/system/sockets.target.wants/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 5/5: /etc/systemd/system/sleep.target.wants/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/systemd/system/sleep.target.wants/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 2
+/etc/systemd/system/emergency.target.wants/
+/etc/systemd/system/graphical.target.wants/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/2: /etc/systemd/system/emergency.target.wants/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/systemd/system/emergency.target.wants/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/2: /etc/systemd/system/graphical.target.wants/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/systemd/system/graphical.target.wants/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/systemd/system/suspend-then-hibernate.target.wants/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/systemd/system/suspend-then-hibernate.target.wants/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/systemd/system/suspend-then-hibernate.target.wants/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 4
+/etc/systemd/system/final.target.wants/
+/etc/systemd/system/rescue.target.wants/
+/etc/systemd/system/getty.target.wants/
+/etc/systemd/system/cloud-init.target.wants/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/4: /etc/systemd/system/final.target.wants/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/systemd/system/final.target.wants/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/4: /etc/systemd/system/rescue.target.wants/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/systemd/system/rescue.target.wants/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 3/4: /etc/systemd/system/getty.target.wants/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/systemd/system/getty.target.wants/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 4/4: /etc/systemd/system/cloud-init.target.wants/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/systemd/system/cloud-init.target.wants/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/texmf/texmf.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/texmf/texmf.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/texmf/texmf.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/ImageMagick-6/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/ImageMagick-6/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/ImageMagick-6/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/pki/fwupd-metadata/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/pki/fwupd-metadata/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/pki/fwupd-metadata/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/update-motd.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/update-motd.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/update-motd.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/ufw/applications.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/ufw/applications.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/ufw/applications.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/ufw/applications.d/apache2/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/ufw/applications.d/apache2/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/ufw/applications.d/apache2/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/iscsi/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/iscsi/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/iscsi/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/alternatives/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/alternatives/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/alternatives/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/pam.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/pam.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/pam.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/fonts/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/fonts/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/fonts/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/fonts/conf.avail/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/fonts/conf.avail/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/fonts/conf.avail/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/rc3.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/rc3.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/rc3.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.composer/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.composer/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.composer/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.rustup/update-hashes/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.rustup/update-hashes/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.rustup/update-hashes/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.rustup/downloads/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.rustup/downloads/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.rustup/downloads/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/rustfmt/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/rustfmt/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/rustfmt/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/rust/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/rust/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/rust/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/zsh/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/zsh/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/zsh/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/man/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/man/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/man/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/etc/bash_completion.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/etc/bash_completion.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/etc/bash_completion.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/etc/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/etc/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/etc/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.config/configstore/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.config/configstore/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.config/configstore/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.cargo/bin/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.cargo/bin/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.cargo/bin/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/.stage/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/.stage/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/.stage/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/fr/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/fr/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/fr/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/ja/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/ja/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/ja/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/de/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/de/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/de/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/it/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/it/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/it/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-arm/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-arm/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-arm/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/osx-arm64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/osx-arm64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/osx-arm64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-arm64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-arm64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-arm64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-x64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-x64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-x64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-arm/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-arm/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-arm/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-arm64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-arm64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-arm64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-x64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-x64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-x64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-x64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-x64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-x64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/browser/lib/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/browser/lib/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/browser/lib/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-x86/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-x86/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-x86/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win/lib/netcoreapp3.0/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win/lib/netcoreapp3.0/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win/lib/netcoreapp3.0/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win/lib/net8.0/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win/lib/net8.0/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win/lib/net8.0/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/osx-x64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/osx-x64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/osx-x64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-ppc64le/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-ppc64le/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-ppc64le/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-arm64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-arm64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-arm64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/ko/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/ko/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/ko/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/zh-Hans/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/zh-Hans/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/zh-Hans/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/pt-BR/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/pt-BR/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/pt-BR/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/es/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/es/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/es/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/de/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/de/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/de/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/it/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/it/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/it/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-arm/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-arm/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-arm/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/osx-arm64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/osx-arm64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/osx-arm64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-arm64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-arm64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-arm64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-x64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-x64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-x64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-arm/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-arm/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-arm/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-arm64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-arm64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-arm64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-x64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-x64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-x64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-x64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-x64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-x64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-x86/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-x86/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-x86/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win/lib/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win/lib/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win/lib/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win/lib/net9.0/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win/lib/net9.0/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win/lib/net9.0/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/osx-x64/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/osx-x64/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/osx-x64/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-ppc64le/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-ppc64le/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-ppc64le/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-arm64/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-arm64/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-arm64/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/tr/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/tr/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/tr/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/zh-Hant/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/zh-Hant/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/zh-Hant/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/fr/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/fr/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/fr/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/ja/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/ja/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/ja/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/cs/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/cs/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/cs/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/pl/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/pl/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/pl/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/ru/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/ru/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/ru/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-arm/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-arm/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-arm/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/osx-arm64/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/osx-arm64/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/osx-arm64/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-arm64/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-arm64/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-arm64/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-x64/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-x64/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-x64/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-arm/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-arm/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-arm/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-arm64/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-arm64/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-arm64/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-x64/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-x64/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-x64/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-x64/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-x64/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-x64/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/browser/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/browser/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/browser/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/browser/lib/net8.0/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/browser/lib/net8.0/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/browser/lib/net8.0/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-x86/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-x86/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-x86/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win/lib/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win/lib/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win/lib/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win/lib/net8.0/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win/lib/net8.0/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win/lib/net8.0/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/osx-x64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/osx-x64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/osx-x64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-ppc64le/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-ppc64le/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-ppc64le/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-arm64/native/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-arm64/native/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-arm64/native/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/ko/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/ko/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/ko/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/zh-Hans/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/zh-Hans/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/zh-Hans/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.github/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.github/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.github/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.github/ISSUE_TEMPLATE/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.github/ISSUE_TEMPLATE/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.github/ISSUE_TEMPLATE/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/refs/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/refs/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/refs/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/refs/remotes/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/refs/remotes/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/refs/remotes/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/refs/tags/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/refs/tags/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/refs/tags/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/objects/3b/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/objects/3b/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/objects/3b/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/objects/18/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/objects/18/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/objects/18/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/objects/8b/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/objects/8b/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/objects/8b/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/objects/15/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/objects/15/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/objects/15/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/objects/pack/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/objects/pack/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/objects/pack/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/objects/02/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/objects/02/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/objects/02/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/objects/b2/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/objects/b2/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/objects/b2/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/objects/info/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/objects/info/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/objects/info/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/objects/c3/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/objects/c3/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/objects/c3/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/objects/d9/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/objects/d9/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/objects/d9/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/objects/f3/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/objects/f3/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/objects/f3/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/objects/5f/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/objects/5f/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/objects/5f/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/info/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/info/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/info/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/logs/refs/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/logs/refs/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/logs/refs/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/.git/logs/refs/remotes/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/.git/logs/refs/remotes/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/.git/logs/refs/remotes/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/xenial/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/xenial/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/xenial/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/slow/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/slow/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/slow/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/slow/nvm_get_latest/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/slow/nvm_get_latest/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/slow/nvm_get_latest/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/slow/nvm reinstall-packages/test-npmlink/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/slow/nvm reinstall-packages/test-npmlink/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/slow/nvm reinstall-packages/test-npmlink/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/slow/nvm exec/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/slow/nvm exec/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/slow/nvm exec/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Listing versions/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Listing versions/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Listing versions/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested/node_modules/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested/node_modules/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested/node_modules/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested/node_modules/foo/bar/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested/node_modules/foo/bar/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested/node_modules/foo/bar/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-pkg/a/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-pkg/a/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-pkg/a/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-pkg/a/b/c/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-pkg/a/b/c/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-pkg/a/b/c/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/no-nesting-pkg/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/no-nesting-pkg/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/no-nesting-pkg/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m/a/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m/a/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m/a/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m/a/b/c/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m/a/b/c/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m/a/b/c/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m/node_modules/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m/node_modules/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m/node_modules/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested-pkg/node_modules/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested-pkg/node_modules/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested-pkg/node_modules/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested-pkg/node_modules/foo/bar/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested-pkg/node_modules/foo/bar/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested-pkg/node_modules/foo/bar/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both/a/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both/a/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both/a/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both/a/b/c/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both/a/b/c/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both/a/b/c/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both/node_modules/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both/node_modules/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both/node_modules/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/no-nesting-n_m/node_modules/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/no-nesting-n_m/node_modules/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/no-nesting-n_m/node_modules/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/no-nesting-both/node_modules/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/no-nesting-both/node_modules/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/no-nesting-both/node_modules/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Aliases/percent in alias name/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Aliases/percent in alias name/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Aliases/percent in alias name/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fast/Aliases/lts/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fast/Aliases/lts/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fast/Aliases/lts/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/sourcing/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/sourcing/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/sourcing/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/test/fixtures/nvmrc/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/test/fixtures/nvmrc/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/test/fixtures/nvmrc/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/skel/.nvm/alias/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/skel/.nvm/alias/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/skel/.nvm/alias/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/rcS.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/rcS.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/rcS.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/rsyslog.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/rsyslog.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/rsyslog.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/default/grub.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/default/grub.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/default/grub.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/groff/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/groff/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/groff/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/cron.yearly/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/cron.yearly/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/cron.yearly/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/PackageKit/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/PackageKit/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/PackageKit/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/cryptsetup-initramfs/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/cryptsetup-initramfs/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/cryptsetup-initramfs/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/udev/rules.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/udev/rules.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/udev/rules.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/nginx/modules-available/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/nginx/modules-available/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/nginx/modules-available/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/nginx/modules-enabled/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/nginx/modules-enabled/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/nginx/modules-enabled/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/nginx/sites-available/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/nginx/sites-available/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/nginx/sites-available/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/lvm/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/lvm/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/lvm/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/networkd-dispatcher/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/networkd-dispatcher/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/networkd-dispatcher/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/networkd-dispatcher/routable.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/networkd-dispatcher/routable.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/networkd-dispatcher/routable.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 3
+/etc/networkd-dispatcher/dormant.d/
+/etc/apparmor/
+/etc/rc1.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/3: /etc/networkd-dispatcher/dormant.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/networkd-dispatcher/dormant.d/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/3: /etc/apparmor/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/apparmor/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 3/3: /etc/rc1.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/rc1.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 2
+/etc/containers/systemd/users/
+/etc/containers/registries.conf.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/2: /etc/containers/systemd/users/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/containers/systemd/users/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/2: /etc/containers/registries.conf.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/containers/registries.conf.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 2
+/etc/cloud/
+/etc/cloud/clean.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/2: /etc/cloud/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/cloud/']
+
+--- 2026-07-16 15:33:52 ---
+Directory 2/2: /etc/cloud/clean.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/cloud/clean.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/cloud/cloud.cfg.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/cloud/cloud.cfg.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/cloud/cloud.cfg.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/pollinate/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/pollinate/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/pollinate/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/update-manager/release-upgrades.d/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/update-manager/release-upgrades.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/update-manager/release-upgrades.d/']
+
+===== 2026-07-16 15:33:52 =====
+Batch size: 1
+/etc/init/
+
+--- 2026-07-16 15:33:52 ---
+Directory 1/1: /etc/init/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/init/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/dconf/db/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/dconf/db/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/dconf/db/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/gss/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/gss/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/gss/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/byobu/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/byobu/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/byobu/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/emacs/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/emacs/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/emacs/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/supercat/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/supercat/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/supercat/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/plymouth/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/plymouth/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/plymouth/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/kernel/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/kernel/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/kernel/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/kernel/postrm.d/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/kernel/postrm.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/kernel/postrm.d/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/libnl-3/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/libnl-3/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/libnl-3/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/containerd/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/containerd/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/containerd/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/ModemManager/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/ModemManager/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/ModemManager/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/ModemManager/fcc-unlock.d/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/ModemManager/fcc-unlock.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/ModemManager/fcc-unlock.d/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/dpkg/dpkg.cfg.d/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/dpkg/dpkg.cfg.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/dpkg/dpkg.cfg.d/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/firebird/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/firebird/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/firebird/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/modules-load.d/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/modules-load.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/modules-load.d/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/postgresql/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/postgresql/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/postgresql/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/postgresql/16/main/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/postgresql/16/main/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/postgresql/16/main/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/sysctl.d/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/sysctl.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/sysctl.d/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/perl/Net/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/perl/Net/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/perl/Net/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/perl/XML/SAX/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/perl/XML/SAX/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/perl/XML/SAX/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/vmware-tools/vgauth/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/vmware-tools/vgauth/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/vmware-tools/vgauth/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/vmware-tools/scripts/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/vmware-tools/scripts/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/vmware-tools/scripts/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/iproute2/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/iproute2/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/iproute2/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/iproute2/rt_protos.d/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/iproute2/rt_protos.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/iproute2/rt_protos.d/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/X11/Xreset.d/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/X11/Xreset.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/X11/Xreset.d/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/X11/xkb/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/X11/xkb/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/X11/xkb/']
+
+===== 2026-07-16 15:33:53 =====
+Batch size: 1
+/etc/X11/xorg.conf.d/
+
+--- 2026-07-16 15:33:53 ---
+Directory 1/1: /etc/X11/xorg.conf.d/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/etc/X11/xorg.conf.d/']

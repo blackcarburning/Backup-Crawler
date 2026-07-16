@@ -3,8 +3,23 @@
 Run several IBM Storage Protect dsmc incremental processes against one mounted
 filesystem without recursively crossing into nested directories/filesystems.
 
-Each directory is submitted with a trailing slash and -subdir=no. A shared,
+Each directory is submitted with a trailing slash and -subdir=no.  A shared,
 bounded work queue gives the next batch to whichever worker finishes first.
+
+Design notes
+------------
+* dsmc session start-up can take 10–20 s even for a single object; this is
+  normal and does NOT indicate a hang.  Begin with a modest worker count (4 is
+  a reasonable starting point) and measure throughput before increasing it.
+* Very high worker counts can overload or throttle the SP client/server session
+  pool and may reduce overall throughput.
+* Per-worker dsmc processes are started with stdin=DEVNULL so they cannot block
+  waiting for interactive input.
+* Configurable hard (--dsmc-timeout) and idle (--dsmc-idle-timeout) timeouts
+  allow safe termination of genuinely stalled processes.  Both default to 0
+  (disabled) to avoid interrupting legitimate long-running backups.
+* No SQLite database is used; all state is held in-memory and written to log
+  files under --log-dir.
 """
 
 from __future__ import annotations
@@ -15,6 +30,7 @@ import os
 import queue
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import threading
@@ -23,12 +39,268 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 
+# ---------------------------------------------------------------------------
+# Constants
+# ---------------------------------------------------------------------------
+
+MAX_DSMC_SUCCESS_RC = 4
+TIMEOUT_RC = 124        # Synthetic RC: hard wall-clock timeout (GNU timeout convention)
+IDLE_TIMEOUT_RC = 125   # Synthetic RC: no-output (idle) timeout
+
+# Dashboard: annotate a running worker as "quiet" after this many idle seconds.
+# This means no dsmc output has been received, not that the process is hung.
+QUIET_DISPLAY_THRESHOLD_SECS = 60.0
+
+_UNIT_MULTIPLIERS: dict[str, int] = {
+    "B": 1,
+    "KB": 1024,
+    "MB": 1024 ** 2,
+    "GB": 1024 ** 3,
+    "TB": 1024 ** 4,
+}
+
+
+# ---------------------------------------------------------------------------
+# dsmc summary-line parsing
+# ---------------------------------------------------------------------------
+
+@dataclass
+class DsmcInvocationStats:
+    """Statistics parsed from one dsmc incremental invocation's output."""
+
+    objects_inspected: int = 0
+    objects_backed_up: int = 0
+    objects_updated: int = 0
+    objects_rebound: int = 0
+    objects_deleted: int = 0
+    objects_expired: int = 0
+    objects_failed: int = 0
+    objects_encrypted: int = 0
+    objects_grew: int = 0
+    retries: int = 0
+    bytes_inspected: float = 0.0     # bytes
+    bytes_transferred: float = 0.0   # bytes
+    transfer_time_secs: float = 0.0
+    network_rate_bps: float = 0.0    # bytes/sec
+    aggregate_rate_bps: float = 0.0  # bytes/sec
+    objects_compressed_pct: float = 0.0
+    data_reduction_pct: float = 0.0
+    elapsed_secs: float = 0.0
+
+    def has_data(self) -> bool:
+        return self.elapsed_secs > 0 or self.objects_inspected > 0 or self.bytes_inspected > 0
+
+
+def _parse_int_field(s: str) -> int:
+    return int(s.replace(",", "").replace(" ", ""))
+
+
+def _parse_float_field(s: str) -> float:
+    return float(s.replace(",", ""))
+
+
+def _bytes_to_si(value_str: str, unit_str: str) -> float:
+    """Convert a value + IBM unit string to raw bytes."""
+    return _parse_float_field(value_str) * _UNIT_MULTIPLIERS.get(unit_str.strip().upper(), 1)
+
+
+_RE_OBJ_COUNT = re.compile(
+    r"total\s+number\s+of\s+objects\s+"
+    r"(inspected|backed\s+up|updated|rebound|deleted|expired|failed|encrypted|grew)"
+    r"\s*:\s*([\d,]+)",
+    re.I,
+)
+_RE_RETRIES = re.compile(r"total\s+number\s+of\s+retries\s*:\s*([\d,]+)", re.I)
+_RE_BYTES = re.compile(
+    r"total\s+number\s+of\s+bytes\s+(inspected|transferred)"
+    r"\s*:\s*([\d,.]+)\s*(B|KB|MB|GB|TB)\b",
+    re.I,
+)
+_RE_TRANSFER_TIME = re.compile(r"data\s+transfer\s+time\s*:\s*([\d.]+)\s*sec", re.I)
+_RE_NETWORK_RATE = re.compile(
+    r"network\s+data\s+transfer\s+rate\s*:\s*([\d.]+)\s*(B|KB|MB|GB|TB)/sec", re.I
+)
+_RE_AGG_RATE = re.compile(
+    r"aggregate\s+data\s+transfer\s+rate\s*:\s*([\d.]+)\s*(B|KB|MB|GB|TB)/sec", re.I
+)
+_RE_COMPRESSED = re.compile(r"objects\s+compressed\s+by\s*:\s*([\d.]+)\s*%", re.I)
+_RE_REDUCTION = re.compile(r"total\s+data\s+reduction\s+ratio\s*:\s*([\d.]+)\s*%", re.I)
+_RE_ELAPSED = re.compile(r"elapsed\s+processing\s+time\s*:\s*(\d+):(\d+):(\d+)", re.I)
+
+_OBJ_FIELD_MAP = {
+    "inspected": "objects_inspected",
+    "backed up": "objects_backed_up",
+    "updated": "objects_updated",
+    "rebound": "objects_rebound",
+    "deleted": "objects_deleted",
+    "expired": "objects_expired",
+    "failed": "objects_failed",
+    "encrypted": "objects_encrypted",
+    "grew": "objects_grew",
+}
+
+
+def parse_dsmc_summary_line(line: str, stats: DsmcInvocationStats) -> None:
+    """Update *stats* in-place from a single dsmc output line.  No-op on non-matching lines."""
+    m = _RE_OBJ_COUNT.search(line)
+    if m:
+        key = re.sub(r"\s+", " ", m.group(1).lower().strip())
+        fname = _OBJ_FIELD_MAP.get(key)
+        if fname:
+            try:
+                setattr(stats, fname, _parse_int_field(m.group(2)))
+            except (ValueError, OverflowError):
+                pass
+        return
+
+    m = _RE_RETRIES.search(line)
+    if m:
+        try:
+            stats.retries = _parse_int_field(m.group(1))
+        except (ValueError, OverflowError):
+            pass
+        return
+
+    m = _RE_BYTES.search(line)
+    if m:
+        kind = m.group(1).lower().strip()
+        try:
+            val = _bytes_to_si(m.group(2), m.group(3))
+        except (ValueError, KeyError):
+            val = 0.0
+        if kind == "inspected":
+            stats.bytes_inspected = val
+        elif kind == "transferred":
+            stats.bytes_transferred = val
+        return
+
+    m = _RE_TRANSFER_TIME.search(line)
+    if m:
+        try:
+            stats.transfer_time_secs = float(m.group(1))
+        except ValueError:
+            pass
+        return
+
+    m = _RE_NETWORK_RATE.search(line)
+    if m:
+        try:
+            stats.network_rate_bps = _bytes_to_si(m.group(1), m.group(2))
+        except (ValueError, KeyError):
+            pass
+        return
+
+    m = _RE_AGG_RATE.search(line)
+    if m:
+        try:
+            stats.aggregate_rate_bps = _bytes_to_si(m.group(1), m.group(2))
+        except (ValueError, KeyError):
+            pass
+        return
+
+    m = _RE_COMPRESSED.search(line)
+    if m:
+        try:
+            stats.objects_compressed_pct = float(m.group(1))
+        except ValueError:
+            pass
+        return
+
+    m = _RE_REDUCTION.search(line)
+    if m:
+        try:
+            stats.data_reduction_pct = float(m.group(1))
+        except ValueError:
+            pass
+        return
+
+    m = _RE_ELAPSED.search(line)
+    if m:
+        try:
+            h, mi, s = int(m.group(1)), int(m.group(2)), int(m.group(3))
+            stats.elapsed_secs = h * 3600 + mi * 60 + s
+        except (ValueError, OverflowError):
+            pass
+
+
+def format_bytes(value: float) -> str:
+    """Format a byte count as a concise human-readable string."""
+    for unit in ("B", "KB", "MB", "GB"):
+        if abs(value) < 1024.0:
+            return f"{value:.2f} {unit}"
+        value /= 1024.0
+    return f"{value:.2f} TB"
+
+
+def format_rate(bps: float) -> str:
+    """Format a bytes/sec value as a human-readable rate string."""
+    return format_bytes(bps) + "/s"
+
+
+# ---------------------------------------------------------------------------
+# Global aggregated dsmc statistics (thread-safe)
+# ---------------------------------------------------------------------------
+
+class GlobalDsmcStats:
+    """Accumulates dsmc statistics across all invocations.  Thread-safe."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.objects_inspected: int = 0
+        self.objects_backed_up: int = 0
+        self.objects_updated: int = 0
+        self.objects_failed: int = 0
+        self.retries: int = 0
+        self.bytes_inspected: float = 0.0
+        self.bytes_transferred: float = 0.0
+        # Sum of all per-invocation elapsed times; used for effective throughput.
+        self.total_elapsed_secs: float = 0.0
+        self.active_children: int = 0
+
+    def add_invocation(self, stats: DsmcInvocationStats) -> None:
+        with self._lock:
+            self.objects_inspected += stats.objects_inspected
+            self.objects_backed_up += stats.objects_backed_up
+            self.objects_updated += stats.objects_updated
+            self.objects_failed += stats.objects_failed
+            self.retries += stats.retries
+            self.bytes_inspected += stats.bytes_inspected
+            self.bytes_transferred += stats.bytes_transferred
+            self.total_elapsed_secs += stats.elapsed_secs
+
+    def child_started(self) -> None:
+        with self._lock:
+            self.active_children += 1
+
+    def child_finished(self) -> None:
+        with self._lock:
+            self.active_children = max(0, self.active_children - 1)
+
+    def snapshot(self) -> dict:
+        with self._lock:
+            return {
+                "objects_inspected": self.objects_inspected,
+                "objects_backed_up": self.objects_backed_up,
+                "objects_failed": self.objects_failed,
+                "retries": self.retries,
+                "bytes_inspected": self.bytes_inspected,
+                "bytes_transferred": self.bytes_transferred,
+                "total_elapsed_secs": self.total_elapsed_secs,
+                "active_children": self.active_children,
+            }
+
+
+# ---------------------------------------------------------------------------
+# Counters (discovered directories, outcomes, skip reasons)
+# ---------------------------------------------------------------------------
+
 @dataclass
 class Counters:
     discovered: int = 0
     completed: int = 0
     failed: int = 0
     skipped_mounts: int = 0
+    excluded_paths: int = 0
     scan_errors: int = 0
     lock: threading.Lock = field(default_factory=threading.Lock, repr=False)
 
@@ -36,20 +308,26 @@ class Counters:
         with self.lock:
             setattr(self, name, getattr(self, name) + value)
 
-    def snapshot(self) -> tuple[int, int, int, int, int]:
+    def snapshot(self) -> tuple[int, int, int, int, int, int]:
         with self.lock:
             return (
                 self.discovered,
                 self.completed,
                 self.failed,
                 self.skipped_mounts,
+                self.excluded_paths,
                 self.scan_errors,
             )
 
 
+# ---------------------------------------------------------------------------
+# Per-worker state (dashboard-visible)
+# ---------------------------------------------------------------------------
+
 @dataclass
 class WorkerState:
     worker_number: int
+    # Lifecycle state; see WorkerStates transition methods for valid values.
     status: str = "idle"
     batch_id: int = 0
     batch_index: int = 0
@@ -59,8 +337,15 @@ class WorkerState:
     batches_completed: int = 0
     dirs_completed: int = 0
     dirs_failed: int = 0
+    dirs_timed_out: int = 0
     batch_start_time: float | None = None
     dir_start_time: float | None = None
+    # Child process tracking
+    child_pid: int | None = None
+    child_start_time: float | None = None
+    child_last_output_time: float | None = None
+    # Latest per-invocation parsed stats (may be None)
+    invocation_stats: DsmcInvocationStats | None = None
 
 
 class WorkerStates:
@@ -84,26 +369,68 @@ class WorkerStates:
             state.last_return_code = None
             state.batch_start_time = time.monotonic()
             state.dir_start_time = None
+            state.child_pid = None
+            state.child_start_time = None
+            state.child_last_output_time = None
+            state.invocation_stats = None
 
     def set_directory(self, worker_number: int, index: int, path: str) -> None:
+        """Called just before launching dsmc for a directory."""
         with self._lock:
             state = self._states[worker_number]
-            state.status = "running"
+            state.status = "starting_dsmc"
             state.batch_index = index
             state.current_directory = path
             state.dir_start_time = time.monotonic()
+            state.child_pid = None
+            state.child_start_time = None
+            state.child_last_output_time = None
+            state.invocation_stats = None
 
-    def set_result(self, worker_number: int, return_code: int) -> None:
+    def set_child(self, worker_number: int, pid: int, start_time: float) -> None:
+        """Called after Popen succeeds; records PID and transitions to running."""
+        with self._lock:
+            state = self._states[worker_number]
+            state.status = "running"
+            state.child_pid = pid
+            state.child_start_time = start_time
+            state.child_last_output_time = start_time
+
+    def update_child_output_time(self, worker_number: int, ts: float) -> None:
+        """Called by the reader thread each time dsmc produces output."""
+        with self._lock:
+            state = self._states[worker_number]
+            state.child_last_output_time = ts
+            # Reset quiet -> running when output is received
+            if state.status == "quiet":
+                state.status = "running"
+
+    def mark_quiet(self, worker_number: int) -> None:
+        """Called by the supervision loop when the child has been silent too long."""
+        with self._lock:
+            state = self._states[worker_number]
+            if state.status == "running":
+                state.status = "quiet"
+
+    def set_result(
+        self,
+        worker_number: int,
+        return_code: int,
+        stats: DsmcInvocationStats | None = None,
+    ) -> None:
         with self._lock:
             state = self._states[worker_number]
             state.last_return_code = return_code
-            if return_code <= MAX_DSMC_SUCCESS_RC:
+            state.child_pid = None
+            state.invocation_stats = stats
+            if return_code in (TIMEOUT_RC, IDLE_TIMEOUT_RC):
+                state.dirs_timed_out += 1
+            elif return_code <= MAX_DSMC_SUCCESS_RC:
                 state.dirs_completed += 1
             else:
                 state.dirs_failed += 1
 
     def waiting(self, worker_number: int) -> None:
-        """Mark worker as waiting for the next batch from the queue."""
         with self._lock:
             state = self._states[worker_number]
             state.status = "waiting_for_work"
@@ -112,22 +439,24 @@ class WorkerStates:
             state.current_directory = ""
             state.batch_start_time = None
             state.dir_start_time = None
+            state.child_pid = None
+            state.child_start_time = None
+            state.child_last_output_time = None
 
     def idle(self, worker_number: int) -> None:
-        """Called when a batch finishes; increments batches_completed."""
+        """Called after all directories in a batch are processed."""
         with self._lock:
             state = self._states[worker_number]
             state.batches_completed += 1
-            state.status = "idle"
+            state.status = "finished_batch"
             state.batch_index = 0
             state.batch_total = 0
             state.current_directory = ""
             state.batch_start_time = None
             state.dir_start_time = None
+            state.child_pid = None
 
     def stopped(self, worker_number: int) -> None:
-        # Status "done" (previously "stopped") reflects that the worker has
-        # exited its loop because the scanner is finished and the queue is empty.
         with self._lock:
             state = self._states[worker_number]
             state.status = "done"
@@ -136,6 +465,12 @@ class WorkerStates:
             state.current_directory = ""
             state.batch_start_time = None
             state.dir_start_time = None
+            state.child_pid = None
+
+    def get_batch_id(self, worker_number: int) -> int:
+        """Return the current batch ID for the given worker (thread-safe)."""
+        with self._lock:
+            return self._states[worker_number].batch_id
 
     def snapshot(self) -> list[WorkerState]:
         with self._lock:
@@ -145,14 +480,18 @@ class WorkerStates:
             ]
 
 
+# ---------------------------------------------------------------------------
+# Live ASCII dashboard
+# ---------------------------------------------------------------------------
+
 class Dashboard:
-    # Status strings longer than this width use abbreviation in the per-worker column.
     _STATUS_WIDTH = 16
 
     def __init__(
         self,
         counters: Counters,
         worker_states: WorkerStates,
+        global_stats: GlobalDsmcStats,
         work_queue: "queue.Queue[str]",
         producer_done: threading.Event,
         stop_event: threading.Event,
@@ -160,6 +499,7 @@ class Dashboard:
     ) -> None:
         self.counters = counters
         self.worker_states = worker_states
+        self.global_stats = global_stats
         self.work_queue = work_queue
         self.producer_done = producer_done
         self.stop_event = stop_event
@@ -189,48 +529,71 @@ class Dashboard:
     def _render(self) -> None:
         now = time.monotonic()
         terminal_width = shutil.get_terminal_size(fallback=(120, 20)).columns
-        discovered, completed, failed, skipped, errors = self.counters.snapshot()
+        discovered, completed, failed, skipped, excluded, errors = self.counters.snapshot()
         states = self.worker_states.snapshot()
+        gs = self.global_stats.snapshot()
         q_size = self.work_queue.qsize()
+        q_max = self.work_queue.maxsize
         scanner_done = self.producer_done.is_set()
 
-        # Items dequeued by workers but not yet accounted for (in-flight).
-        # max(0, ...) guards against the inherent race between counters.snapshot()
-        # and work_queue.qsize(): the two reads are not atomic.
         in_progress = max(0, discovered - completed - failed - q_size)
-
         scanner_label = "DONE   " if scanner_done else "RUNNING"
+
+        # Queue saturation indicator
+        queue_full = q_max > 0 and q_size >= q_max
+        q_str = f"q={q_size}/{q_max}"
+        if queue_full:
+            q_str += "[FULL]"
+
+        # Percentage complete
         if scanner_done and discovered > 0:
             pct = min(100.0, (completed + failed) / discovered * 100)
             pct_str = f"  ({pct:.1f}%)"
-        elif discovered > 0:
-            pct_str = ""
         else:
-            pct_str = ""
+            pct_str = "  (scanning, total growing)" if not scanner_done else ""
+
+        # Effective aggregate throughput
+        total_elapsed = gs["total_elapsed_secs"]
+        if total_elapsed > 0 and gs["bytes_transferred"] > 0:
+            rate_str = f"  rate={format_rate(gs['bytes_transferred'] / total_elapsed)}"
+        else:
+            rate_str = ""
 
         sep = "-" * min(terminal_width, 80)
 
         lines = [
-            f"Scanner: {scanner_label}  "
-            f"found={discovered}  q={q_size}  in-prog={in_progress}  "
-            f"skipped={skipped}  errors={errors}",
+            (
+                f"Scanner: {scanner_label}  found={discovered}  {q_str}  "
+                f"in-prog={in_progress}  excl={excluded}  "
+                f"skipped={skipped}  errors={errors}"
+            ),
             f"Overall: completed={completed}  failed={failed}{pct_str}",
+            (
+                f"dsmc:  insp={gs['objects_inspected']}  bkup={gs['objects_backed_up']}  "
+                f"fail={gs['objects_failed']}  retries={gs['retries']}  "
+                f"bytes_i={format_bytes(gs['bytes_inspected'])}  "
+                f"bytes_x={format_bytes(gs['bytes_transferred'])}"
+                f"  children={gs['active_children']}{rate_str}"
+            ),
             sep,
         ]
 
-        # Column widths for the per-worker rows.
-        bar_width = 12
-        # W01 + space = 4
-        # [bar] + space = bar_width+3
-        # pos:>7 + space = 8
-        # status:<16 + space = 17
-        # b#NNN:<6 + space = 7
-        # ok:NNN fl:NN:<14 + space = 15
-        # rc=NNN:<7 + space = 8
-        # time:<6 + 2 spaces = 8
-        # remaining = path
-        static_width = 4 + (bar_width + 3) + 8 + 17 + 7 + 15 + 8 + 8
-        path_width = max(10, terminal_width - static_width)
+        # Per-worker rows
+        bar_width = 10
+        # Layout (fixed-width prefix before path):
+        # W01 + sp = 4
+        # [bar] + sp = bar_width+3
+        # pos + sp = 7+1 = 8
+        # status + sp = STATUS_WIDTH+1
+        # b#NNN + sp = 6
+        # pid=NNNNN + sp = 10
+        # rt:NNN.Ns + sp = 10
+        # idle:NNN.Ns + sp = 12
+        # ok:NN to:NN fl:NN + sp = 18
+        # rc=NNN + sp = 7
+        # path (remaining)
+        static_width = 4 + (bar_width + 3) + 8 + (self._STATUS_WIDTH + 1) + 6 + 10 + 10 + 12 + 18 + 7
+        path_width = max(8, terminal_width - static_width)
 
         for state in states:
             pos = (
@@ -239,9 +602,7 @@ class Dashboard:
                 else "--/--"
             )
 
-            # Elapsed time: prefer per-directory time; fall back to batch time.
-            # A leading '~' signals that the value is the batch-level elapsed time
-            # (used when the worker is between directories, e.g. opening a log file).
+            # Elapsed time for current directory, or batch elapsed while between dirs
             if state.dir_start_time is not None:
                 time_str = f"{now - state.dir_start_time:.1f}s"
             elif state.batch_start_time is not None:
@@ -249,28 +610,52 @@ class Dashboard:
             else:
                 time_str = ""
 
+            # Age since last child output (idle time)
+            if state.child_last_output_time is not None:
+                idle_secs = now - state.child_last_output_time
+                idle_str = f"{idle_secs:.1f}s"
+            else:
+                idle_str = ""
+
             rc_str = (
                 f"rc={state.last_return_code}"
                 if state.last_return_code is not None
                 else ""
             )
             b_str = f"b#{state.batch_id}" if state.batch_id > 0 else ""
-            stats = f"ok:{state.dirs_completed} fl:{state.dirs_failed}"
+            pid_str = f"pid={state.child_pid}" if state.child_pid is not None else ""
+            stats_str = (
+                f"ok:{state.dirs_completed} to:{state.dirs_timed_out} fl:{state.dirs_failed}"
+            )
 
-            if state.status == "running":
-                bar = f"[{self._bar(state.batch_index, state.batch_total, bar_width)}]"
-            else:
-                bar = " " * (bar_width + 2)
+            # Display status; annotate running workers that have been quiet
+            display_status = state.status
+            if state.status in ("running", "quiet"):
+                if (
+                    state.child_last_output_time is not None
+                    and (now - state.child_last_output_time) >= QUIET_DISPLAY_THRESHOLD_SECS
+                ):
+                    display_status = "quiet"
+                else:
+                    display_status = "running"
+
+            bar = (
+                f"[{self._bar(state.batch_index, state.batch_total, bar_width)}]"
+                if state.status in ("running", "quiet", "starting_dsmc")
+                else " " * (bar_width + 2)
+            )
 
             prefix = (
                 f"W{state.worker_number:02d} "
                 f"{bar} "
                 f"{pos:>7} "
-                f"{state.status:<16} "
-                f"{b_str:<6} "
-                f"{stats:<14} "
-                f"{rc_str:<7} "
-                f"{time_str:<6}  "
+                f"{display_status:<{self._STATUS_WIDTH}} "
+                f"{b_str:<5} "
+                f"{pid_str:<9} "
+                f"rt:{time_str:<7} "
+                f"idle:{idle_str:<7} "
+                f"{stats_str:<17} "
+                f"{rc_str:<6} "
             )
             path = self._truncate(state.current_directory, path_width)
             lines.append(prefix + path)
@@ -285,7 +670,7 @@ class Dashboard:
     def run(self) -> None:
         while not self.stop_event.wait(self.refresh_seconds):
             self._render()
-            discovered, completed, failed, _, _ = self.counters.snapshot()
+            discovered, completed, failed, _, _, _ = self.counters.snapshot()
             if self.producer_done.is_set() and completed + failed >= discovered:
                 return
 
@@ -293,7 +678,13 @@ class Dashboard:
         self._render()
 
 
+# ---------------------------------------------------------------------------
+# Logging helpers
+# ---------------------------------------------------------------------------
+
 class SafeLogger:
+    """Append-only timestamped log; optionally echos to stdout."""
+
     def __init__(self, path: Path, echo: bool = True) -> None:
         self.path = path
         self.echo = echo
@@ -303,43 +694,45 @@ class SafeLogger:
         stamp = time.strftime("%Y-%m-%d %H:%M:%S")
         line = f"{stamp} {message}\n"
         with self.lock:
-            with self.path.open("a", encoding="utf-8", errors="backslashreplace") as handle:
-                handle.write(line)
+            with self.path.open("a", encoding="utf-8", errors="backslashreplace") as fh:
+                fh.write(line)
         if self.echo:
             print(line, end="", flush=True)
 
 
 class SafeAppender:
+    """Append-only file writer; safe for concurrent use."""
+
     def __init__(self, path: Path) -> None:
         self.path = path
         self.lock = threading.Lock()
 
     def write(self, line: str) -> None:
         with self.lock:
-            with self.path.open("a", encoding="utf-8", errors="backslashreplace") as handle:
-                handle.write(line.rstrip("\n") + "\n")
+            with self.path.open("a", encoding="utf-8", errors="backslashreplace") as fh:
+                fh.write(line.rstrip("\n") + "\n")
 
+
+# ---------------------------------------------------------------------------
+# Filesystem / mount utilities
+# ---------------------------------------------------------------------------
 
 _MOUNT_ESCAPE = re.compile(r"\\([0-7]{3})")
-MAX_DSMC_SUCCESS_RC = 4
-
-
 def decode_mountinfo_path(value: str) -> str:
-    """Decode octal escapes in /proc/self/mountinfo paths (such as \\040 for space)."""
-    return _MOUNT_ESCAPE.sub(lambda match: chr(int(match.group(1), 8)), value)
+    """Decode octal escapes in /proc/self/mountinfo paths (e.g. \\040 for space)."""
+    return _MOUNT_ESCAPE.sub(lambda m: chr(int(m.group(1), 8)), value)
 
 
 def mounted_paths() -> set[str]:
     paths: set[str] = set()
     try:
-        with open("/proc/self/mountinfo", "r", encoding="utf-8") as handle:
-            for line in handle:
+        with open("/proc/self/mountinfo", "r", encoding="utf-8") as fh:
+            for line in fh:
                 fields = line.split()
                 if len(fields) >= 5:
                     mountpoint = decode_mountinfo_path(fields[4])
                     paths.add(os.path.normpath(os.path.realpath(mountpoint)))
     except OSError:
-        # st_dev checks still provide the normal filesystem-boundary protection.
         pass
     return paths
 
@@ -352,11 +745,34 @@ def is_within(root: str, candidate: str) -> bool:
 
 
 def nested_mounts(root: str) -> set[str]:
-    return {path for path in mounted_paths() if path != root and is_within(root, path)}
+    return {p for p in mounted_paths() if p != root and is_within(root, p)}
 
+
+# ---------------------------------------------------------------------------
+# Path exclusion utilities
+# ---------------------------------------------------------------------------
+
+def is_path_excluded(path: str, excluded_paths: frozenset[str]) -> bool:
+    """
+    Return True if *path* equals or is a descendant of any path in *excluded_paths*.
+    Uses Path.relative_to for correct boundary-aware containment (not string prefix).
+    """
+    p = Path(path)
+    for excl in excluded_paths:
+        try:
+            p.relative_to(excl)
+            return True
+        except ValueError:
+            continue
+    return False
+
+
+# ---------------------------------------------------------------------------
+# Scanner (producer thread)
+# ---------------------------------------------------------------------------
 
 def put_with_stop(
-    work_queue: queue.Queue[str], path: str, stop_event: threading.Event
+    work_queue: "queue.Queue[str]", path: str, stop_event: threading.Event
 ) -> bool:
     while not stop_event.is_set():
         try:
@@ -369,13 +785,14 @@ def put_with_stop(
 
 def scan_directories(
     root: str,
-    work_queue: queue.Queue[str],
+    work_queue: "queue.Queue[str]",
     producer_done: threading.Event,
     stop_event: threading.Event,
     counters: Counters,
+    excluded_paths: frozenset[str],
     logger: SafeLogger,
 ) -> None:
-    """Iteratively scan directories while remaining on the root filesystem."""
+    """Iteratively scan directories, staying on the root filesystem, honouring exclusions."""
     try:
         root_device = os.stat(root, follow_symlinks=False).st_dev
     except OSError as exc:
@@ -406,13 +823,19 @@ def scan_directories(
 
                             child = os.path.normpath(entry.path)
 
+                            # Exclusion check (path-aware, catches log dir and user paths)
+                            if is_path_excluded(child, excluded_paths):
+                                counters.add("excluded_paths")
+                                logger.write(f"SKIP excluded path: {child}")
+                                continue
+
                             # Explicit mountpoint detection catches bind mounts too.
                             if child in mount_boundaries:
                                 counters.add("skipped_mounts")
                                 logger.write(f"SKIP nested mount: {child}")
                                 continue
 
-                            # The device check is cheap and catches ordinary mounts.
+                            # Device check is cheap and catches ordinary mounts.
                             if entry.stat(follow_symlinks=False).st_dev != root_device:
                                 counters.add("skipped_mounts")
                                 logger.write(f"SKIP different filesystem: {child}")
@@ -429,6 +852,10 @@ def scan_directories(
         producer_done.set()
 
 
+# ---------------------------------------------------------------------------
+# Worker queue helpers
+# ---------------------------------------------------------------------------
+
 def dsm_directory_operand(path: str) -> str:
     """A trailing slash tells dsmc to process the directory's immediate contents."""
     if path == os.sep:
@@ -437,7 +864,7 @@ def dsm_directory_operand(path: str) -> str:
 
 
 def get_batch(
-    work_queue: queue.Queue[str],
+    work_queue: "queue.Queue[str]",
     batch_size: int,
     producer_done: threading.Event,
     stop_event: threading.Event,
@@ -461,23 +888,211 @@ def get_batch(
     return batch
 
 
-def wait_for_queue_drain(work_queue: queue.Queue[str], timeout_seconds: int) -> bool:
-    deadline = time.monotonic() + timeout_seconds
-    while time.monotonic() < deadline:
-        if work_queue.unfinished_tasks == 0:
-            return True
-        time.sleep(0.2)
-    return work_queue.unfinished_tasks == 0
+# ---------------------------------------------------------------------------
+# Process group management (POSIX / Windows)
+# ---------------------------------------------------------------------------
 
+def _kill_process_group(
+    proc: subprocess.Popen,
+    logger: SafeLogger,
+    worker_name: str,
+    reason: str,
+) -> None:
+    """
+    Send SIGTERM to the process group (POSIX) or terminate the process (Windows),
+    wait up to 2 s, then SIGKILL / kill if still alive.
+    """
+    _posix = hasattr(os, "killpg") and hasattr(signal, "SIGTERM")
+    try:
+        if _posix:
+            try:
+                pgid = os.getpgid(proc.pid)
+            except ProcessLookupError:
+                return
+            try:
+                os.killpg(pgid, signal.SIGTERM)
+                logger.write(f"{worker_name}: SIGTERM → process group {pgid} ({reason})")
+            except ProcessLookupError:
+                return
+            except OSError:
+                pass
+            # Wait up to 2 s for graceful exit
+            deadline = time.monotonic() + 2.0
+            while time.monotonic() < deadline:
+                if proc.poll() is not None:
+                    return
+                time.sleep(0.1)
+            # Force-kill
+            try:
+                pgid = os.getpgid(proc.pid)
+                os.killpg(pgid, signal.SIGKILL)
+                logger.write(f"{worker_name}: SIGKILL → process group {pgid}")
+            except (ProcessLookupError, OSError):
+                pass
+        else:
+            proc.terminate()
+            deadline = time.monotonic() + 2.0
+            while time.monotonic() < deadline:
+                if proc.poll() is not None:
+                    return
+                time.sleep(0.1)
+            proc.kill()
+    except OSError:
+        pass
+    finally:
+        try:
+            proc.wait(timeout=5)
+        except subprocess.TimeoutExpired:
+            pass
+
+
+# ---------------------------------------------------------------------------
+# Supervised dsmc runner
+# ---------------------------------------------------------------------------
+
+def run_dsmc_supervised(
+    command: list[str],
+    env: dict,
+    output_file,
+    worker_number: int,
+    worker_states: WorkerStates,
+    global_stats: GlobalDsmcStats,
+    logger: SafeLogger,
+    worker_name: str,
+    dsmc_timeout: float,
+    dsmc_idle_timeout: float,
+    stop_event: threading.Event,
+) -> tuple[int, DsmcInvocationStats]:
+    """
+    Launch dsmc with stdin=DEVNULL, stream combined output, supervise timeouts.
+
+    Returns (return_code, DsmcInvocationStats).
+    On timeout the child process group is killed and TIMEOUT_RC / IDLE_TIMEOUT_RC
+    is returned so the worker can continue with subsequent directories.
+    """
+    stats = DsmcInvocationStats()
+    start_time = time.monotonic()
+    # Mutable holder so the reader thread can update it
+    last_output_ts: list[float] = [start_time]
+
+    popen_kwargs: dict = {
+        "stdout": subprocess.PIPE,
+        "stderr": subprocess.STDOUT,
+        "stdin": subprocess.DEVNULL,
+        "env": env,
+    }
+    if hasattr(os, "setsid"):
+        popen_kwargs["preexec_fn"] = os.setsid
+
+    try:
+        proc = subprocess.Popen(command, **popen_kwargs)
+    except OSError as exc:
+        logger.write(f"{worker_name}: failed to start dsmc: {exc}")
+        return 127, stats
+
+    worker_states.set_child(worker_number, proc.pid, start_time)
+    global_stats.child_started()
+
+    reader_done = threading.Event()
+
+    def _reader() -> None:
+        buf = b""
+        try:
+            assert proc.stdout is not None
+            while True:
+                chunk = proc.stdout.read(4096)
+                if not chunk:
+                    break
+                now = time.monotonic()
+                last_output_ts[0] = now
+                worker_states.update_child_output_time(worker_number, now)
+                output_file.write(chunk)
+                buf += chunk
+                while b"\n" in buf:
+                    raw_line, buf = buf.split(b"\n", 1)
+                    parse_dsmc_summary_line(
+                        raw_line.decode("utf-8", errors="replace"), stats
+                    )
+            if buf:
+                parse_dsmc_summary_line(buf.decode("utf-8", errors="replace"), stats)
+        finally:
+            reader_done.set()
+
+    reader_thread = threading.Thread(target=_reader, daemon=True)
+    reader_thread.start()
+
+    timed_out_reason: str | None = None
+
+    try:
+        while True:
+            now = time.monotonic()
+            elapsed = now - start_time
+            idle = now - last_output_ts[0]
+
+            # Ctrl-C / explicit stop
+            if stop_event.is_set():
+                timed_out_reason = "stop requested"
+                break
+
+            # Hard wall-clock timeout
+            if dsmc_timeout > 0 and elapsed >= dsmc_timeout:
+                timed_out_reason = (
+                    f"hard timeout ({elapsed:.0f}s >= {dsmc_timeout:.0f}s)"
+                )
+                break
+
+            # Idle (no-output) timeout
+            if dsmc_idle_timeout > 0 and idle >= dsmc_idle_timeout:
+                timed_out_reason = (
+                    f"idle timeout ({idle:.0f}s >= {dsmc_idle_timeout:.0f}s)"
+                )
+                break
+
+            # Update quiet display state
+            if idle >= QUIET_DISPLAY_THRESHOLD_SECS:
+                worker_states.mark_quiet(worker_number)
+
+            # Process exited normally
+            rc = proc.poll()
+            if rc is not None:
+                reader_thread.join(timeout=10)
+                return rc, stats
+
+            # Compute next sleep; bound by nearest timeout
+            sleep_time = 0.2
+            if dsmc_timeout > 0:
+                sleep_time = min(sleep_time, max(0.01, dsmc_timeout - elapsed))
+            if dsmc_idle_timeout > 0:
+                sleep_time = min(sleep_time, max(0.01, dsmc_idle_timeout - idle))
+            time.sleep(sleep_time)
+
+    finally:
+        global_stats.child_finished()
+
+    # Reached only on timeout or stop
+    is_idle_timeout = timed_out_reason is not None and "idle" in timed_out_reason
+    synthetic_rc = IDLE_TIMEOUT_RC if is_idle_timeout else TIMEOUT_RC
+    logger.write(
+        f"{worker_name}: killing dsmc pid={proc.pid} ({timed_out_reason})"
+    )
+    _kill_process_group(proc, logger, worker_name, timed_out_reason or "timeout")
+    reader_thread.join(timeout=5)
+    return synthetic_rc, stats
+
+
+# ---------------------------------------------------------------------------
+# Worker thread
+# ---------------------------------------------------------------------------
 
 def worker(
     worker_number: int,
     args: argparse.Namespace,
-    work_queue: queue.Queue[str],
+    work_queue: "queue.Queue[str]",
     producer_done: threading.Event,
     stop_event: threading.Event,
     counters: Counters,
     worker_states: WorkerStates,
+    global_stats: GlobalDsmcStats,
     logger: SafeLogger,
     failed_logger: SafeAppender,
 ) -> None:
@@ -505,7 +1120,8 @@ def worker(
             worker_states.start_batch(worker_number, len(batch))
             logger.write(
                 f"{worker_name}: reserved {len(batch)} "
-                f"{'directory' if len(batch) == 1 else 'directories'}"
+                f"{'directory' if len(batch) == 1 else 'directories'} "
+                f"(batch #{worker_states.get_batch_id(worker_number)})"
             )
 
             try:
@@ -513,16 +1129,20 @@ def worker(
                     output.write(
                         (
                             f"\n===== {time.strftime('%Y-%m-%d %H:%M:%S')} =====\n"
-                            f"Directories: {len(batch)}\n"
-                            + "\n".join(dsm_directory_operand(path) for path in batch)
+                            f"Batch size: {len(batch)}\n"
+                            + "\n".join(
+                                dsm_directory_operand(p) for p in batch
+                            )
                             + "\n"
                         ).encode("utf-8", errors="backslashreplace")
                     )
 
                     for index, path in enumerate(batch, start=1):
+                        if stop_event.is_set():
+                            break
+
                         worker_states.set_directory(worker_number, index, path)
                         operand = dsm_directory_operand(path)
-                        # One directory per invocation keeps worker X/Y progress accurate.
                         command = [
                             args.dsmc,
                             "incremental",
@@ -540,6 +1160,7 @@ def worker(
                         )
 
                         return_code = 0
+                        inv_stats = DsmcInvocationStats()
                         try:
                             if args.dry_run:
                                 output.write(
@@ -548,20 +1169,44 @@ def worker(
                                     )
                                 )
                             else:
-                                completed = subprocess.run(
-                                    command,
-                                    stdout=output,
-                                    stderr=subprocess.STDOUT,
+                                return_code, inv_stats = run_dsmc_supervised(
+                                    command=command,
                                     env=environment,
-                                    check=False,
+                                    output_file=output,
+                                    worker_number=worker_number,
+                                    worker_states=worker_states,
+                                    global_stats=global_stats,
+                                    logger=logger,
+                                    worker_name=worker_name,
+                                    dsmc_timeout=args.dsmc_timeout,
+                                    dsmc_idle_timeout=args.dsmc_idle_timeout,
+                                    stop_event=stop_event,
                                 )
-                                return_code = completed.returncode
+                                if inv_stats.has_data():
+                                    global_stats.add_invocation(inv_stats)
                         except OSError as exc:
                             return_code = 127
-                            logger.write(f"{worker_name}: failed to start dsmc: {exc}")
+                            logger.write(f"{worker_name}: OS error running dsmc: {exc}")
 
-                        worker_states.set_result(worker_number, return_code)
-                        if return_code <= MAX_DSMC_SUCCESS_RC:
+                        worker_states.set_result(worker_number, return_code, inv_stats)
+
+                        if return_code == TIMEOUT_RC:
+                            counters.add("failed")
+                            logger.write(
+                                f"{worker_name}: HARD TIMEOUT {index}/{len(batch)} path={path}"
+                            )
+                            failed_logger.write(
+                                f"{return_code}\t{path}\t# hard timeout"
+                            )
+                        elif return_code == IDLE_TIMEOUT_RC:
+                            counters.add("failed")
+                            logger.write(
+                                f"{worker_name}: IDLE TIMEOUT {index}/{len(batch)} path={path}"
+                            )
+                            failed_logger.write(
+                                f"{return_code}\t{path}\t# idle timeout"
+                            )
+                        elif return_code <= MAX_DSMC_SUCCESS_RC:
                             counters.add("completed")
                             logger.write(
                                 f"{worker_name}: completed {index}/{len(batch)} "
@@ -582,17 +1227,31 @@ def worker(
         worker_states.stopped(worker_number)
 
 
+# ---------------------------------------------------------------------------
+# Progress reporter (non-TTY fallback)
+# ---------------------------------------------------------------------------
+
 def progress_reporter(
     counters: Counters,
+    global_stats: GlobalDsmcStats,
+    work_queue: "queue.Queue[str]",
     producer_done: threading.Event,
     stop_event: threading.Event,
     interval: int,
 ) -> None:
     while not stop_event.wait(interval):
-        discovered, completed, failed, skipped, errors = counters.snapshot()
+        discovered, completed, failed, skipped, excluded, errors = counters.snapshot()
+        q_size = work_queue.qsize()
+        in_progress = max(0, discovered - completed - failed - q_size)
+        gs = global_stats.snapshot()
         print(
-            f"PROGRESS discovered={discovered} completed={completed} "
-            f"failed={failed} skipped_mounts={skipped} scan_errors={errors}",
+            f"PROGRESS discovered={discovered} q={q_size} in-prog={in_progress} "
+            f"excl={excluded} completed={completed} failed={failed} "
+            f"skipped_mounts={skipped} scan_errors={errors} "
+            f"children={gs['active_children']} "
+            f"insp={gs['objects_inspected']} bkup={gs['objects_backed_up']} "
+            f"bytes_i={format_bytes(gs['bytes_inspected'])} "
+            f"bytes_x={format_bytes(gs['bytes_transferred'])}",
             flush=True,
         )
         if producer_done.is_set() and completed + failed >= discovered:
@@ -603,12 +1262,21 @@ def should_enable_dashboard(dashboard_disabled: bool) -> bool:
     return not dashboard_disabled and sys.stdout.isatty()
 
 
+# ---------------------------------------------------------------------------
+# CLI
+# ---------------------------------------------------------------------------
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
         description=(
             "Back up every directory in one mounted filesystem using a dynamic "
-            "pool of parallel dsmc processes."
-        )
+            "pool of parallel dsmc processes.\n\n"
+            "NOTE: Individual dsmc invocations have substantial session start-up "
+            "latency (often 10–20 s even for a single object). Begin with a modest "
+            "worker count (4 is a good starting point) and measure throughput "
+            "before increasing it."
+        ),
+        formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument("mountpoint", help="Mounted filesystem to process")
     parser.add_argument(
@@ -653,8 +1321,30 @@ def parse_args() -> argparse.Namespace:
         action="append",
         default=[],
         help=(
-            "Additional dsmc option; repeat as needed. For options beginning '-' use "
-            "--dsmc-option=-servername=NAME"
+            "Additional dsmc option; repeat as needed. "
+            "For options beginning '-' use --dsmc-option=-servername=NAME"
+        ),
+    )
+    parser.add_argument(
+        "--dsmc-timeout",
+        type=float,
+        default=0,
+        metavar="SECONDS",
+        help=(
+            "Hard wall-clock timeout for one dsmc directory invocation in seconds "
+            "(0 = disabled, default: 0). "
+            "Conservative recommendation: leave disabled unless you observe genuine hangs."
+        ),
+    )
+    parser.add_argument(
+        "--dsmc-idle-timeout",
+        type=float,
+        default=0,
+        metavar="SECONDS",
+        help=(
+            "Timeout when dsmc produces no output for this many seconds "
+            "(0 = disabled, default: 0). "
+            "dsmc can legitimately stay quiet while processing large files."
         ),
     )
     parser.add_argument(
@@ -662,14 +1352,26 @@ def parse_args() -> argparse.Namespace:
         type=int,
         default=2,
         help=(
-            "dsmc resourceutilization value (default: 2, avoids internal multisession "
-            "backup; valid range: 1-100)"
+            "dsmc resourceutilization value (default: 2, avoids internal "
+            "multisession backup; valid range: 1-100)"
         ),
     )
     parser.add_argument(
         "--log-dir",
         default="./sp-parallel-logs",
-        help="Directory for controller and dsmc logs",
+        help="Directory for controller and dsmc logs (default: ./sp-parallel-logs)",
+    )
+    parser.add_argument(
+        "--exclude-path",
+        action="append",
+        default=[],
+        dest="exclude_path",
+        metavar="PATH",
+        help=(
+            "Exclude PATH and all its subdirectories from crawling. "
+            "Repeatable. The log directory is excluded automatically when it "
+            "falls within the crawl root."
+        ),
     )
     parser.add_argument(
         "--progress-seconds",
@@ -687,7 +1389,10 @@ def parse_args() -> argparse.Namespace:
         "--shutdown-wait-seconds",
         type=int,
         default=30,
-        help="Seconds to wait for producer/workers to exit during shutdown (default: 30)",
+        help=(
+            "Seconds to wait for workers to finish after a Ctrl-C interrupt "
+            "(default: 30). Not used during normal (non-interrupted) runs."
+        ),
     )
     parser.add_argument(
         "--no-dashboard",
@@ -720,9 +1425,17 @@ def parse_args() -> argparse.Namespace:
         parser.error("--dashboard-refresh-seconds must be greater than 0")
     if args.shutdown_wait_seconds < 1:
         parser.error("--shutdown-wait-seconds must be at least 1")
+    if args.dsmc_timeout < 0:
+        parser.error("--dsmc-timeout must be >= 0 (0 = disabled)")
+    if args.dsmc_idle_timeout < 0:
+        parser.error("--dsmc-idle-timeout must be >= 0 (0 = disabled)")
 
     return args
 
+
+# ---------------------------------------------------------------------------
+# Entry point
+# ---------------------------------------------------------------------------
 
 def main() -> int:
     args = parse_args()
@@ -741,6 +1454,29 @@ def main() -> int:
             return 2
         args.dsmc = resolved_dsmc
 
+    # ---- Build exclusion set ----
+    excluded_paths_set: set[str] = set()
+
+    log_dir_norm = os.path.normpath(args.log_dir)
+    # Auto-exclude log directory if it falls within the crawl root
+    if is_path_excluded(log_dir_norm, frozenset([root])):
+        excluded_paths_set.add(log_dir_norm)
+        # Will be logged after SafeLogger is created
+
+    for raw_excl in args.exclude_path:
+        norm = os.path.normpath(os.path.abspath(raw_excl))
+        if norm == root:
+            print(
+                f"WARNING: --exclude-path {raw_excl!r} resolves to the crawl root; "
+                "ignoring to avoid excluding all work",
+                file=sys.stderr,
+            )
+            continue
+        excluded_paths_set.add(norm)
+
+    excluded_paths = frozenset(excluded_paths_set)
+
+    # ---- Set up log directory and shared objects ----
     dashboard_enabled = should_enable_dashboard(args.no_dashboard)
 
     log_dir = Path(args.log_dir)
@@ -749,9 +1485,12 @@ def main() -> int:
     logger = SafeLogger(log_dir / "controller.log", echo=not dashboard_enabled)
     failed_path = log_dir / "failed-directories.tsv"
     if not failed_path.exists():
-        failed_path.write_text("return_code\tdirectory\n", encoding="utf-8")
+        failed_path.write_text(
+            "return_code\tdirectory\tnotes\n", encoding="utf-8"
+        )
     failed_logger = SafeAppender(failed_path)
     counters = Counters()
+    global_stats = GlobalDsmcStats()
     worker_states = WorkerStates(args.streams)
     work_queue: queue.Queue[str] = queue.Queue(maxsize=args.queue_size)
     producer_done = threading.Event()
@@ -759,15 +1498,26 @@ def main() -> int:
 
     logger.write(
         f"START root={root} streams={args.streams} batch_size={args.batch_size} "
-        f"dry_run={args.dry_run} dashboard={dashboard_enabled}"
+        f"dry_run={args.dry_run} dashboard={dashboard_enabled} "
+        f"dsmc_timeout={args.dsmc_timeout} dsmc_idle_timeout={args.dsmc_idle_timeout}"
     )
+
+    if log_dir_norm in excluded_paths_set:
+        logger.write(
+            f"INFO: log directory {log_dir_norm!r} is inside crawl root; "
+            "automatically excluded from scanning"
+        )
+
+    for excl in sorted(excluded_paths_set - {log_dir_norm}):
+        logger.write(f"INFO: user-specified exclusion: {excl!r}")
 
     if root not in mounted_paths():
         logger.write(
-            "WARNING: supplied path is not listed as a mountpoint; processing remains "
-            "restricted to its current filesystem"
+            "WARNING: supplied path is not listed as a mountpoint; "
+            "processing remains restricted to its current filesystem"
         )
 
+    # ---- Thread construction ----
     producer = threading.Thread(
         name="directory-scanner",
         target=scan_directories,
@@ -777,6 +1527,7 @@ def main() -> int:
             producer_done,
             stop_event,
             counters,
+            excluded_paths,
             logger,
         ),
         daemon=True,
@@ -794,6 +1545,7 @@ def main() -> int:
                 stop_event,
                 counters,
                 worker_states,
+                global_stats,
                 logger,
                 failed_logger,
             ),
@@ -808,6 +1560,7 @@ def main() -> int:
         dashboard = Dashboard(
             counters=counters,
             worker_states=worker_states,
+            global_stats=global_stats,
             work_queue=work_queue,
             producer_done=producer_done,
             stop_event=stop_event,
@@ -824,6 +1577,8 @@ def main() -> int:
             target=progress_reporter,
             args=(
                 counters,
+                global_stats,
+                work_queue,
                 producer_done,
                 stop_event,
                 args.progress_seconds,
@@ -837,36 +1592,48 @@ def main() -> int:
         reporter.start()
         producer.start()
 
-        producer.join(timeout=args.shutdown_wait_seconds)
-        if producer.is_alive():
-            logger.write("WARNING: producer thread did not exit in time; requesting stop")
-            stop_event.set()
-            producer_done.set()
-        if not wait_for_queue_drain(work_queue, args.shutdown_wait_seconds):
-            logger.write("WARNING: work queue did not drain in time")
+        # Normal flow: wait for the scanner to finish (no timeout — scans can take
+        # arbitrarily long and a fixed timeout would prematurely stop large runs).
+        producer.join()
+
+        # Wait for every enqueued item to be processed (task_done called by workers).
+        work_queue.join()
+
+        # Workers should exit quickly once the queue is drained and producer_done is set.
+        for thread in workers:
+            thread.join()
+
+    except KeyboardInterrupt:
+        logger.write("INTERRUPTED: requesting stop; terminating active dsmc children")
+        stop_event.set()
+        producer_done.set()
+        # Workers check stop_event; run_dsmc_supervised will kill child processes.
         for thread in workers:
             thread.join(timeout=args.shutdown_wait_seconds)
             if thread.is_alive():
-                logger.write(f"WARNING: {thread.name} did not exit in time")
-    except KeyboardInterrupt:
-        logger.write("INTERRUPTED: verify whether any active dsmc child processes remain")
-        stop_event.set()
-        producer_done.set()
+                logger.write(
+                    f"WARNING: {thread.name} did not exit within "
+                    f"{args.shutdown_wait_seconds}s after interrupt"
+                )
         return 130
     finally:
         stop_event.set()
-        reporter.join(timeout=1)
+        reporter.join(timeout=2)
         if dashboard is not None:
             dashboard.finish()
 
-    discovered, completed, failed, skipped, errors = counters.snapshot()
+    # ---- Post-run summary ----
+    discovered, completed, failed, skipped, excluded, errors = counters.snapshot()
+    gs = global_stats.snapshot()
     logger.write(
         f"END discovered={discovered} completed={completed} failed={failed} "
-        f"skipped_mounts={skipped} scan_errors={errors}"
+        f"skipped_mounts={skipped} excluded_paths={excluded} scan_errors={errors} "
+        f"dsmc_insp={gs['objects_inspected']} dsmc_bkup={gs['objects_backed_up']} "
+        f"bytes_i={format_bytes(gs['bytes_inspected'])} "
+        f"bytes_x={format_bytes(gs['bytes_transferred'])}"
     )
 
-    # Consistency check: every discovered directory should be accounted for.
-    # This runs after all worker threads have been joined, so counters are final.
+    # Reconciliation: every discovered directory should be accounted for.
     if completed + failed != discovered:
         logger.write(
             f"WARNING: counter mismatch — discovered={discovered} but "
@@ -876,8 +1643,8 @@ def main() -> int:
 
     if not dashboard_enabled:
         print(
-            f"PROGRESS discovered={discovered} completed={completed} "
-            f"failed={failed} skipped_mounts={skipped} scan_errors={errors}",
+            f"DONE discovered={discovered} completed={completed} failed={failed} "
+            f"skipped_mounts={skipped} excluded={excluded} scan_errors={errors}",
             flush=True,
         )
 
