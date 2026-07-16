@@ -5,7 +5,7 @@ Parallel IBM Storage Protect (`dsmc`) crawler for one mounted filesystem.
 ## Usage
 
 ```bash
-python3 /home/runner/work/Backup-Crawler/Backup-Crawler/backup_crawler.py /mountpoint \
+python3 ./backup_crawler.py /mountpoint \
   --streams 4 \
   --batch-size 20 \
   --queue-size 1000
@@ -22,14 +22,14 @@ When stdout is a TTY, the script renders a live ASCII dashboard with one row per
 Control it with:
 
 ```bash
-python3 /home/runner/work/Backup-Crawler/Backup-Crawler/backup_crawler.py /mountpoint \
+python3 ./backup_crawler.py /mountpoint \
   --dashboard-refresh-seconds 0.5
 ```
 
 Disable the dashboard (or for non-interactive runs):
 
 ```bash
-python3 /home/runner/work/Backup-Crawler/Backup-Crawler/backup_crawler.py /mountpoint --no-dashboard
+python3 ./backup_crawler.py /mountpoint --no-dashboard
 ```
 
 In non-TTY contexts, the script automatically falls back to plain periodic progress lines.
