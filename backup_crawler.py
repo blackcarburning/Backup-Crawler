@@ -127,7 +127,7 @@ class Dashboard:
 
     @staticmethod
     def _truncate(value: str, max_length: int) -> str:
-        if max_length <= 0:
+        if max_length < 1:
             return ""
         if len(value) <= max_length:
             return value
@@ -226,7 +226,7 @@ _MOUNT_ESCAPE = re.compile(r"\\([0-7]{3})")
 
 
 def decode_mountinfo_path(value: str) -> str:
-    """Decode octal escapes in /proc/self/mountinfo paths (for example, \\040 for space)."""
+    """Decode octal escapes in /proc/self/mountinfo paths (such as \\\\040 for space)."""
     return _MOUNT_ESCAPE.sub(lambda match: chr(int(match.group(1), 8)), value)
 
 
@@ -353,7 +353,7 @@ def get_batch(
         except queue.Empty:
             continue
 
-    while len(batch) < batch_size:
+    while len(batch) < batch_size and not stop_event.is_set():
         try:
             batch.append(work_queue.get_nowait())
         except queue.Empty:
@@ -694,10 +694,16 @@ def main() -> int:
         reporter.start()
         producer.start()
 
-        producer.join()
+        producer.join(timeout=30)
+        if producer.is_alive():
+            logger.write("WARNING: producer thread did not exit in time; requesting stop")
+            stop_event.set()
+            producer_done.set()
         work_queue.join()
         for thread in workers:
-            thread.join()
+            thread.join(timeout=5)
+            if thread.is_alive():
+                logger.write(f"WARNING: {thread.name} did not exit in time")
     except KeyboardInterrupt:
         logger.write("INTERRUPTED: verify whether any active dsmc child processes remain")
         stop_event.set()
