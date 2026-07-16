@@ -519,7 +519,25 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("mountpoint", help="Mounted filesystem to process")
     parser.add_argument(
-        "-n", "--streams", type=int, default=3, help="Parallel dsmc workers (default: 3)"
+        "streams_positional",
+        nargs="?",
+        type=int,
+        default=None,
+        metavar="WORKERS",
+        help=(
+            "Number of parallel dsmc workers (positional shortcut). "
+            "Ignored when --streams is also supplied."
+        ),
+    )
+    parser.add_argument(
+        "-n",
+        "--streams",
+        type=int,
+        default=None,
+        help=(
+            "Parallel dsmc workers (default: 3). "
+            "Takes precedence over the positional WORKERS argument."
+        ),
     )
     parser.add_argument(
         "-b",
@@ -588,8 +606,16 @@ def parse_args() -> argparse.Namespace:
     )
     args = parser.parse_args()
 
+    # Precedence: explicit --streams > positional WORKERS > built-in default (3)
+    if args.streams is not None:
+        pass  # explicit --streams wins; positional WORKERS is ignored
+    elif args.streams_positional is not None:
+        args.streams = args.streams_positional
+    else:
+        args.streams = 3
+
     if args.streams < 1:
-        parser.error("--streams must be at least 1")
+        parser.error("--streams / WORKERS must be at least 1")
     if args.batch_size < 1:
         parser.error("--batch-size must be at least 1")
     if args.queue_size < args.streams:

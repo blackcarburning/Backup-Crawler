@@ -5,11 +5,18 @@ Parallel IBM Storage Protect (`dsmc`) crawler for one mounted filesystem.
 ## Usage
 
 ```bash
-python3 ./backup_crawler.py /mountpoint \
-  --streams 4 \
+# Using the positional shortcut
+python3 ./backup_crawler.py /mountpoint 4
+
+# Using the named option (equivalent)
+python3 ./backup_crawler.py /mountpoint --streams 4 \
   --batch-size 20 \
   --queue-size 1000
 ```
+
+Both forms set the number of parallel `dsmc` worker processes.  When both are
+supplied, `--streams` takes precedence and the positional `WORKERS` value is
+ignored.  If neither is given the default is **3**.
 
 ### Live dashboard
 
