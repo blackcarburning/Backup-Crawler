@@ -467,6 +467,11 @@ class WorkerStates:
             state.dir_start_time = None
             state.child_pid = None
 
+    def get_batch_id(self, worker_number: int) -> int:
+        """Return the current batch ID for the given worker (thread-safe)."""
+        with self._lock:
+            return self._states[worker_number].batch_id
+
     def snapshot(self) -> list[WorkerState]:
         with self._lock:
             return [
@@ -1116,7 +1121,7 @@ def worker(
             logger.write(
                 f"{worker_name}: reserved {len(batch)} "
                 f"{'directory' if len(batch) == 1 else 'directories'} "
-                f"(batch #{worker_states._states[worker_number].batch_id})"
+                f"(batch #{worker_states.get_batch_id(worker_number)})"
             )
 
             try:

@@ -269,7 +269,9 @@ class TestScanDirectoriesExclusion(unittest.TestCase):
         done = threading.Event()
         stop = threading.Event()
         counters = bc.Counters()
-        log_file = Path(tempfile.mktemp(suffix=".log"))
+        # Use NamedTemporaryFile to avoid the insecure mktemp race condition
+        with tempfile.NamedTemporaryFile(suffix=".log", delete=False) as _tf:
+            log_file = Path(_tf.name)
         logger = bc.SafeLogger(log_file, echo=False)
 
         t = threading.Thread(
