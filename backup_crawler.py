@@ -99,7 +99,11 @@ _UNIT_MULTIPLIERS: dict[str, int] = {
     "MB": 1024 ** 2,
     "GB": 1024 ** 3,
     "TB": 1024 ** 4,
+    "PB": 1024 ** 5,
 }
+
+# IEC unit labels and thresholds used by format_bytes (1024-based).
+_IEC_UNITS = ("B", "KiB", "MiB", "GiB", "TiB", "PiB")
 
 
 # ---------------------------------------------------------------------------
@@ -120,8 +124,8 @@ class DsmcInvocationStats:
     objects_encrypted: int = 0
     objects_grew: int = 0
     retries: int = 0
-    bytes_inspected: float = 0.0     # bytes
-    bytes_transferred: float = 0.0   # bytes
+    bytes_inspected: int = 0     # exact integer bytes
+    bytes_transferred: int = 0   # exact integer bytes
     transfer_time_secs: float = 0.0
     network_rate_bps: float = 0.0    # bytes/sec
     aggregate_rate_bps: float = 0.0  # bytes/sec
@@ -141,9 +145,20 @@ def _parse_float_field(s: str) -> float:
     return float(s.replace(",", ""))
 
 
-def _bytes_to_si(value_str: str, unit_str: str) -> float:
-    """Convert a value + IBM unit string to raw bytes."""
-    return _parse_float_field(value_str) * _UNIT_MULTIPLIERS.get(unit_str.strip().upper(), 1)
+def _bytes_to_si(value_str: str, unit_str: str) -> int:
+    """Convert a value + IBM unit string to an exact integer byte count.
+
+    IBM Storage Protect uses labels such as ``KB``, ``MB``, ``GB`` with
+    1024-based (binary) multipliers — consistent with IEC convention.
+    Sub-byte fractions are rounded to the nearest whole byte.
+
+    An unrecognised unit falls back to a multiplier of 1 (treats the raw
+    value as bytes) rather than raising an exception.  This is intentional:
+    it degrades gracefully for future IBM unit strings while still recording
+    a non-zero value that makes the summary visibly non-zero in the dashboard.
+    """
+    raw = _parse_float_field(value_str) * _UNIT_MULTIPLIERS.get(unit_str.strip().upper(), 1)
+    return round(raw)
 
 
 _RE_OBJ_COUNT = re.compile(
@@ -209,7 +224,7 @@ def parse_dsmc_summary_line(line: str, stats: DsmcInvocationStats) -> None:
         try:
             val = _bytes_to_si(m.group(2), m.group(3))
         except (ValueError, KeyError):
-            val = 0.0
+            val = 0
         if kind == "inspected":
             stats.bytes_inspected = val
         elif kind == "transferred":
@@ -266,12 +281,17 @@ def parse_dsmc_summary_line(line: str, stats: DsmcInvocationStats) -> None:
 
 
 def format_bytes(value: float) -> str:
-    """Format a byte count as a concise human-readable string."""
-    for unit in ("B", "KB", "MB", "GB"):
+    """Format a byte count as a concise human-readable string using IEC units.
+
+    Uses 1024-based (binary) multipliers and IEC unit labels:
+    B, KiB, MiB, GiB, TiB, PiB.  This matches IBM Storage Protect's own
+    convention (its ``KB``/``MB``/``GB`` labels are also 1024-based).
+    """
+    for unit in _IEC_UNITS[:-1]:
         if abs(value) < 1024.0:
             return f"{value:.2f} {unit}"
         value /= 1024.0
-    return f"{value:.2f} TB"
+    return f"{value:.2f} {_IEC_UNITS[-1]}"
 
 
 def format_rate(bps: float) -> str:
@@ -284,31 +304,83 @@ def format_rate(bps: float) -> str:
 # ---------------------------------------------------------------------------
 
 class GlobalDsmcStats:
-    """Accumulates dsmc statistics across all invocations.  Thread-safe."""
+    """Accumulates dsmc statistics across all invocations.  Thread-safe.
+
+    Accounting model
+    ----------------
+    * ``dsmc_done``          — total completed dsmc invocations (including failed
+                               processes); incremented exactly once per invocation.
+    * ``summaries_parsed``   — invocations whose dsmc summary was successfully
+                               parsed (``has_data()`` is True).
+    * ``incomplete_summaries``— invocations where summary data was absent or
+                               incomplete (``has_data()`` is False); the object/byte
+                               counters below therefore may undercount the true total.
+    * Object counters (``objects_backed_up``, etc.) and byte counters
+      (``bytes_inspected``, ``bytes_transferred``) accumulate only from
+      invocations with parsed summaries.
+    * ``bytes_inspected`` corresponds to "Total number of bytes inspected"
+      (data processed/scanned by dsmc).
+    * ``bytes_transferred`` corresponds to "Total number of bytes transferred"
+      (data actually sent to the SP server).
+    * All byte values are stored as exact integer bytes (no floating-point
+      accumulation).
+    * Dry-run invocations never call ``add_invocation``; totals therefore
+      reflect only real dsmc runs.
+    """
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
+        # Invocation accounting
+        self.dsmc_done: int = 0
+        self.summaries_parsed: int = 0
+        self.incomplete_summaries: int = 0
+        # Object counters
         self.objects_inspected: int = 0
         self.objects_backed_up: int = 0
         self.objects_updated: int = 0
+        self.objects_rebound: int = 0
+        self.objects_deleted: int = 0
+        self.objects_expired: int = 0
         self.objects_failed: int = 0
+        self.objects_encrypted: int = 0
+        self.objects_grew: int = 0
         self.retries: int = 0
-        self.bytes_inspected: float = 0.0
-        self.bytes_transferred: float = 0.0
+        # Byte counters (exact integers)
+        self.bytes_inspected: int = 0
+        self.bytes_transferred: int = 0
         # Sum of all per-invocation elapsed times; used for effective throughput.
         self.total_elapsed_secs: float = 0.0
         self.active_children: int = 0
 
     def add_invocation(self, stats: DsmcInvocationStats) -> None:
+        """Merge one completed invocation's parsed stats into the global aggregate.
+
+        Must be called exactly once per invocation after the process exits.
+        Dry-run invocations must never call this method.
+
+        If ``stats.has_data()`` is False (no summary lines were parsed) the
+        ``incomplete_summaries`` counter is incremented and object/byte totals
+        are left unchanged for that invocation.
+        """
         with self._lock:
-            self.objects_inspected += stats.objects_inspected
-            self.objects_backed_up += stats.objects_backed_up
-            self.objects_updated += stats.objects_updated
-            self.objects_failed += stats.objects_failed
-            self.retries += stats.retries
-            self.bytes_inspected += stats.bytes_inspected
-            self.bytes_transferred += stats.bytes_transferred
-            self.total_elapsed_secs += stats.elapsed_secs
+            self.dsmc_done += 1
+            if stats.has_data():
+                self.summaries_parsed += 1
+                self.objects_inspected += stats.objects_inspected
+                self.objects_backed_up += stats.objects_backed_up
+                self.objects_updated += stats.objects_updated
+                self.objects_rebound += stats.objects_rebound
+                self.objects_deleted += stats.objects_deleted
+                self.objects_expired += stats.objects_expired
+                self.objects_failed += stats.objects_failed
+                self.objects_encrypted += stats.objects_encrypted
+                self.objects_grew += stats.objects_grew
+                self.retries += stats.retries
+                self.bytes_inspected += stats.bytes_inspected
+                self.bytes_transferred += stats.bytes_transferred
+                self.total_elapsed_secs += stats.elapsed_secs
+            else:
+                self.incomplete_summaries += 1
 
     def child_started(self) -> None:
         with self._lock:
@@ -319,11 +391,21 @@ class GlobalDsmcStats:
             self.active_children = max(0, self.active_children - 1)
 
     def snapshot(self) -> dict:
+        """Return a consistent point-in-time copy of all counters (no partial reads)."""
         with self._lock:
             return {
+                "dsmc_done": self.dsmc_done,
+                "summaries_parsed": self.summaries_parsed,
+                "incomplete_summaries": self.incomplete_summaries,
                 "objects_inspected": self.objects_inspected,
                 "objects_backed_up": self.objects_backed_up,
+                "objects_updated": self.objects_updated,
+                "objects_rebound": self.objects_rebound,
+                "objects_deleted": self.objects_deleted,
+                "objects_expired": self.objects_expired,
                 "objects_failed": self.objects_failed,
+                "objects_encrypted": self.objects_encrypted,
+                "objects_grew": self.objects_grew,
                 "retries": self.retries,
                 "bytes_inspected": self.bytes_inspected,
                 "bytes_transferred": self.bytes_transferred,
@@ -622,11 +704,24 @@ class Dashboard:
             ),
             f"Overall: completed={completed}  failed={failed}{pct_str}",
             (
-                f"dsmc:  insp={gs['objects_inspected']}  bkup={gs['objects_backed_up']}  "
-                f"fail={gs['objects_failed']}  retries={gs['retries']}  "
-                f"bytes_i={format_bytes(gs['bytes_inspected'])}  "
-                f"bytes_x={format_bytes(gs['bytes_transferred'])}"
-                f"  children={gs['active_children']}{rate_str}"
+                # dsmc_done = total completed invocations; summaries_parsed/dsmc_done
+                # shows how many produced a parseable summary block.
+                f"Backup totals: done={gs['dsmc_done']:,}"
+                f"  parsed={gs['summaries_parsed']:,}/{gs['dsmc_done']:,}"
+                f"  incomplete={gs['incomplete_summaries']:,}"
+                f"  children={gs['active_children']}"
+            ),
+            (
+                f"Objects: inspected={gs['objects_inspected']:,}"
+                f"  backed_up={gs['objects_backed_up']:,}"
+                f"  updated={gs['objects_updated']:,}"
+                f"  failed={gs['objects_failed']:,}"
+                f"  retries={gs['retries']:,}"
+            ),
+            (
+                f"Data: processed={format_bytes(gs['bytes_inspected'])}"
+                f"  sent={format_bytes(gs['bytes_transferred'])}"
+                + rate_str
             ),
             sep,
         ]
@@ -1113,8 +1208,9 @@ def run_root_files_job(
                             dsmc_idle_timeout=args.dsmc_idle_timeout,
                             stop_event=stop_event,
                         )
-                        if inv_stats.has_data():
-                            global_stats.add_invocation(inv_stats)
+                        # Always merge exactly once per invocation; add_invocation
+                        # tracks completeness internally via has_data().
+                        global_stats.add_invocation(inv_stats)
                 except OSError as exc:
                     return_code = 127
                     logger.write(f"{JOB_NAME}: OS error running dsmc: {exc}")
@@ -1465,8 +1561,10 @@ def worker(
                                     dsmc_idle_timeout=args.dsmc_idle_timeout,
                                     stop_event=stop_event,
                                 )
-                                if inv_stats.has_data():
-                                    global_stats.add_invocation(inv_stats)
+                                # Always merge into global stats (exactly once per
+                                # invocation).  add_invocation tracks whether the
+                                # summary was complete via has_data().
+                                global_stats.add_invocation(inv_stats)
                         except OSError as exc:
                             return_code = 127
                             logger.write(f"{worker_name}: OS error running dsmc: {exc}")
@@ -1532,9 +1630,13 @@ def progress_reporter(
             f"excl={excluded} completed={completed} failed={failed} "
             f"skipped_mounts={skipped} scan_errors={errors} "
             f"children={gs['active_children']} "
-            f"insp={gs['objects_inspected']} bkup={gs['objects_backed_up']} "
-            f"bytes_i={format_bytes(gs['bytes_inspected'])} "
-            f"bytes_x={format_bytes(gs['bytes_transferred'])}",
+            f"done={gs['dsmc_done']} parsed={gs['summaries_parsed']}/{gs['dsmc_done']} "
+            f"incomplete={gs['incomplete_summaries']} "
+            f"insp={gs['objects_inspected']:,} bkup={gs['objects_backed_up']:,} "
+            f"updated={gs['objects_updated']:,} failed={gs['objects_failed']:,} "
+            f"retries={gs['retries']:,} "
+            f"processed={format_bytes(gs['bytes_inspected'])} "
+            f"sent={format_bytes(gs['bytes_transferred'])}",
             flush=True,
         )
         if producer_done.is_set() and completed + failed >= discovered:
@@ -1945,9 +2047,26 @@ def main() -> int:
     logger.write(
         f"END discovered={discovered} completed={completed} failed={failed} "
         f"skipped_mounts={skipped} excluded_paths={excluded} scan_errors={errors} "
-        f"dsmc_insp={gs['objects_inspected']} dsmc_bkup={gs['objects_backed_up']} "
-        f"bytes_i={format_bytes(gs['bytes_inspected'])} "
-        f"bytes_x={format_bytes(gs['bytes_transferred'])}"
+        f"dsmc_insp={gs['objects_inspected']:,} dsmc_bkup={gs['objects_backed_up']:,} "
+        f"processed={format_bytes(gs['bytes_inspected'])} "
+        f"sent={format_bytes(gs['bytes_transferred'])}"
+    )
+    # Machine-readable final stats line useful for auditing and log parsing.
+    # bytes_inspected / bytes_transferred are exact integer byte counts.
+    logger.write(
+        f"FINAL DSMC STATS"
+        f" invocations={gs['dsmc_done']}"
+        f" parsed={gs['summaries_parsed']}"
+        f" incomplete={gs['incomplete_summaries']}"
+        f" objects_inspected={gs['objects_inspected']}"
+        f" objects_backed_up={gs['objects_backed_up']}"
+        f" objects_updated={gs['objects_updated']}"
+        f" objects_failed={gs['objects_failed']}"
+        f" retries={gs['retries']}"
+        f" bytes_inspected={gs['bytes_inspected']}"
+        f" ({format_bytes(gs['bytes_inspected'])})"
+        f" bytes_transferred={gs['bytes_transferred']}"
+        f" ({format_bytes(gs['bytes_transferred'])})"
     )
 
     # Reconciliation: every discovered directory should be accounted for.
@@ -1979,7 +2098,12 @@ def main() -> int:
     if not dashboard_enabled:
         print(
             f"DONE discovered={discovered} completed={completed} failed={failed} "
-            f"skipped_mounts={skipped} excluded={excluded} scan_errors={errors}",
+            f"skipped_mounts={skipped} excluded={excluded} scan_errors={errors} "
+            f"dsmc_done={gs['dsmc_done']} parsed={gs['summaries_parsed']} "
+            f"incomplete={gs['incomplete_summaries']} "
+            f"objects_backed_up={gs['objects_backed_up']:,} "
+            f"bytes_inspected={gs['bytes_inspected']} ({format_bytes(gs['bytes_inspected'])}) "
+            f"bytes_transferred={gs['bytes_transferred']} ({format_bytes(gs['bytes_transferred'])})",
             flush=True,
         )
 

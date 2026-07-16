@@ -164,7 +164,9 @@ When stdout is a TTY, the script renders a live ASCII dashboard.  Example:
 ```
 Scanner: RUNNING  found=342  q=85/1000  in-prog=10  excl=2  skipped=3  errors=0
 Overall: completed=247  failed=0  (scanning, total growing)
-dsmc:  insp=1  bkup=0  fail=0  retries=0  bytes_i=4.00 KB  bytes_x=0 B  children=4
+Backup totals: done=247  parsed=247/247  incomplete=0  children=4
+Objects: inspected=1,234  backed_up=56  updated=3  failed=0  retries=0
+Data: processed=18.00 MiB  sent=3.25 MiB
 --------------------------------------------------------------------------------
 ROOT_FILES [##########]  1/1  running  b#1  pid=9990   rt:5.1s    idle:0.2s    ok:0 to:0 fl:0  rc=    3 files, 1 chunk(s)
 W01        [##########]  8/20 running  b#6  pid=5432   rt:2.3s    idle:0.1s    ok:76 to:0 fl:0  rc=0   /data/subdir/a…
@@ -172,6 +174,32 @@ W02        [####------]  4/20 quiet   b#5  pid=5431   rt:75.2s   idle:63.1s   ok
 W03                    --/-- waiting_for_work b#4                 idle:          ok:40 to:0 fl:0        
 W04                    --/-- done     b#3                         idle:          ok:20 to:0 fl:0        
 ```
+
+**Backup totals block** (above separator and worker rows)
+
+| Field | Meaning |
+|---|---|
+| `done=N` | Total completed `dsmc` invocations (includes failed/timed-out processes) |
+| `parsed=N/N` | Invocations with parsed summary / total invocations done |
+| `incomplete=N` | Invocations where the summary was absent or unparseable |
+| `children=N` | Active `dsmc` child processes right now |
+| `inspected=N` | Cumulative "Total number of objects inspected" from parsed summaries |
+| `backed_up=N` | Cumulative **"Total number of objects backed up"** — the primary file-count metric |
+| `updated=N` | Cumulative objects updated (re-sent) |
+| `failed=N` | Cumulative objects that dsmc failed to back up |
+| `retries=N` | Cumulative retries |
+| `processed=X` | Cumulative "Total number of bytes inspected" — data scanned/processed |
+| `sent=X` | Cumulative "Total number of bytes transferred" — data actually sent to the server |
+| `rate=X/s` | Effective aggregate throughput (only when data was transferred) |
+
+> **Terminology note**
+> - **`backed_up`** = dsmc "Total number of objects backed up" — new objects sent on this run.
+> - **`updated`** = dsmc "Total number of objects updated" — objects re-sent due to changes.
+> - **`processed`** = dsmc "Total number of bytes inspected" — all bytes scanned.
+> - **`sent`** = dsmc "Total number of bytes transferred" — bytes actually sent.
+> - These are separate from the **directory** counters (`completed`, `failed`), which count how many directory invocations finished, not how many files they contained.
+
+**Totals update after each completed process** (not continuously during streaming), because dsmc emits its summary block only at exit.
 
 **Global header rows**
 
@@ -189,10 +217,6 @@ W04                    --/-- done     b#3                         idle:         
 | `failed=N` | Directories where `dsmc` returned `rc > 4` or timed out |
 | `(X.X%)` | Percentage complete (only after scanner finishes) |
 | `(scanning, total growing)` | Scanner still running; final total not yet known |
-| `insp/bkup/fail/retries` | Aggregate dsmc object counts |
-| `bytes_i/bytes_x` | Aggregate bytes inspected / transferred (human-readable) |
-| `children=N` | Number of active dsmc child processes right now |
-| `rate=X/s` | Effective aggregate throughput (bytes_transferred / total_elapsed) |
 
 **Per-worker columns**
 
