@@ -634,7 +634,7 @@ class Dashboard:
         # Per-worker rows (worker 0 = ROOT_FILES special job, shown first when present)
         bar_width = 10
         # Layout (fixed-width prefix before path):
-        # label + sp = 11 (ROOT_FILES=10 chars; regular workers e.g. W01 are padded)
+        # label + sp = 11 (ROOT_FILES=10 chars; regular workers such as W01 are padded)
         # [bar] + sp = bar_width+3
         # pos + sp = 7+1 = 8
         # status + sp = STATUS_WIDTH+1
@@ -1035,7 +1035,8 @@ def run_root_files_job(
     worker_states.set_custom_status(WORKER_SLOT, "scanning", f"scanning {root}")
     files = collect_root_files(root, excluded_paths)
     logger.write(
-        f"{JOB_NAME}: found {len(files)} eligible non-directory entry/entries under {root!r}"
+        f"{JOB_NAME}: found {len(files)} eligible non-directory "
+        f"{'entry' if len(files) == 1 else 'entries'} under {root!r}"
     )
 
     if not files:
@@ -1860,7 +1861,7 @@ def main() -> int:
                 failed_logger,
                 stop_event,
             ),
-            daemon=True,
+            daemon=False,  # not a daemon: we explicitly join it to ensure proper accounting
         )
 
     reporter: threading.Thread | None = None

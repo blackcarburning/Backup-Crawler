@@ -696,8 +696,10 @@ class TestCollectRootFiles(unittest.TestCase):
             self.assertIn(str(link), files)
 
     def test_symlink_to_dir_not_included(self):
-        """Symlinks pointing at directories must be excluded (they are dirs via follow=False? No.
-        Actually symlink to dir: is_dir(follow_symlinks=False) = False, so they ARE included."""
+        """Symlinks pointing at directories are included as non-directory entries.
+        DirEntry.is_dir(follow_symlinks=False) returns False for all symlinks, so
+        a symlink-to-dir is treated as a file-like entry and backed up as a link
+        object rather than descended into."""
         # symlink-to-dir with follow_symlinks=False reports is_dir=False
         # so it will be included as a file-like entry (backed up as a link object)
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -755,6 +757,7 @@ class TestChunkRootFiles(unittest.TestCase):
     def test_single_file_larger_than_limit_still_in_own_chunk(self):
         """A single very long path must still be placed in a chunk even if its
         byte cost exceeds max_bytes (we cannot split a single path further)."""
+        # Path length chosen to far exceed a small max_bytes limit (10 bytes)
         long_path = "/" + "x" * 300
         files = [long_path, "/short"]
         chunks = bc.chunk_root_files(files, max_bytes=10)
@@ -1032,7 +1035,10 @@ class TestRunRootFilesJobDryRun(unittest.TestCase):
         try:
             states = ws.snapshot()
             root_state = next(s for s in states if s.worker_number == 0)
-            # In dry-run mode with small files, everything fits in one chunk
+            # In dry-run mode with small files, everything fits in one chunk.
+            # Note: dirs_completed tracks completed chunks for the ROOT_FILES job
+            # (it reuses the WorkerState field that counts completed directory invocations
+            # for regular workers; for slot 0 it represents completed dsmc chunk runs).
             self.assertGreaterEqual(root_state.dirs_completed, 1)
         finally:
             _shutil.rmtree(tmpdir, ignore_errors=True)
