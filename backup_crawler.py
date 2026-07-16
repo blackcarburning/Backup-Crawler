@@ -126,6 +126,8 @@ class WorkerStates:
             state.dir_start_time = None
 
     def stopped(self, worker_number: int) -> None:
+        # Status "done" (previously "stopped") reflects that the worker has
+        # exited its loop because the scanner is finished and the queue is empty.
         with self._lock:
             state = self._states[worker_number]
             state.status = "done"
@@ -193,6 +195,8 @@ class Dashboard:
         scanner_done = self.producer_done.is_set()
 
         # Items dequeued by workers but not yet accounted for (in-flight).
+        # max(0, ...) guards against the inherent race between counters.snapshot()
+        # and work_queue.qsize(): the two reads are not atomic.
         in_progress = max(0, discovered - completed - failed - q_size)
 
         scanner_label = "DONE   " if scanner_done else "RUNNING"
@@ -236,6 +240,8 @@ class Dashboard:
             )
 
             # Elapsed time: prefer per-directory time; fall back to batch time.
+            # A leading '~' signals that the value is the batch-level elapsed time
+            # (used when the worker is between directories, e.g. opening a log file).
             if state.dir_start_time is not None:
                 time_str = f"{now - state.dir_start_time:.1f}s"
             elif state.batch_start_time is not None:
@@ -860,6 +866,7 @@ def main() -> int:
     )
 
     # Consistency check: every discovered directory should be accounted for.
+    # This runs after all worker threads have been joined, so counters are final.
     if completed + failed != discovered:
         logger.write(
             f"WARNING: counter mismatch — discovered={discovered} but "
