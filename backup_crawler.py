@@ -51,15 +51,22 @@ class Counters:
 class WorkerState:
     worker_number: int
     status: str = "idle"
+    batch_id: int = 0
     batch_index: int = 0
     batch_total: int = 0
     current_directory: str = ""
     last_return_code: int | None = None
+    batches_completed: int = 0
+    dirs_completed: int = 0
+    dirs_failed: int = 0
+    batch_start_time: float | None = None
+    dir_start_time: float | None = None
 
 
 class WorkerStates:
     def __init__(self, streams: int) -> None:
         self._lock = threading.Lock()
+        self._next_batch_id = 0
         self._states = {
             number: WorkerState(worker_number=number)
             for number in range(1, streams + 1)
@@ -67,12 +74,16 @@ class WorkerStates:
 
     def start_batch(self, worker_number: int, total: int) -> None:
         with self._lock:
+            self._next_batch_id += 1
             state = self._states[worker_number]
             state.status = "running"
+            state.batch_id = self._next_batch_id
             state.batch_index = 0
             state.batch_total = total
             state.current_directory = ""
             state.last_return_code = None
+            state.batch_start_time = time.monotonic()
+            state.dir_start_time = None
 
     def set_directory(self, worker_number: int, index: int, path: str) -> None:
         with self._lock:
@@ -80,26 +91,51 @@ class WorkerStates:
             state.status = "running"
             state.batch_index = index
             state.current_directory = path
+            state.dir_start_time = time.monotonic()
 
     def set_result(self, worker_number: int, return_code: int) -> None:
         with self._lock:
-            self._states[worker_number].last_return_code = return_code
+            state = self._states[worker_number]
+            state.last_return_code = return_code
+            if return_code <= MAX_DSMC_SUCCESS_RC:
+                state.dirs_completed += 1
+            else:
+                state.dirs_failed += 1
 
-    def idle(self, worker_number: int) -> None:
+    def waiting(self, worker_number: int) -> None:
+        """Mark worker as waiting for the next batch from the queue."""
         with self._lock:
             state = self._states[worker_number]
+            state.status = "waiting_for_work"
+            state.batch_index = 0
+            state.batch_total = 0
+            state.current_directory = ""
+            state.batch_start_time = None
+            state.dir_start_time = None
+
+    def idle(self, worker_number: int) -> None:
+        """Called when a batch finishes; increments batches_completed."""
+        with self._lock:
+            state = self._states[worker_number]
+            state.batches_completed += 1
             state.status = "idle"
             state.batch_index = 0
             state.batch_total = 0
             state.current_directory = ""
+            state.batch_start_time = None
+            state.dir_start_time = None
 
     def stopped(self, worker_number: int) -> None:
+        # Status "done" (previously "stopped") reflects that the worker has
+        # exited its loop because the scanner is finished and the queue is empty.
         with self._lock:
             state = self._states[worker_number]
-            state.status = "stopped"
+            state.status = "done"
             state.batch_index = 0
             state.batch_total = 0
             state.current_directory = ""
+            state.batch_start_time = None
+            state.dir_start_time = None
 
     def snapshot(self) -> list[WorkerState]:
         with self._lock:
@@ -110,16 +146,21 @@ class WorkerStates:
 
 
 class Dashboard:
+    # Status strings longer than this width use abbreviation in the per-worker column.
+    _STATUS_WIDTH = 16
+
     def __init__(
         self,
         counters: Counters,
         worker_states: WorkerStates,
+        work_queue: "queue.Queue[str]",
         producer_done: threading.Event,
         stop_event: threading.Event,
         refresh_seconds: float,
     ) -> None:
         self.counters = counters
         self.worker_states = worker_states
+        self.work_queue = work_queue
         self.producer_done = producer_done
         self.stop_event = stop_event
         self.refresh_seconds = refresh_seconds
@@ -146,42 +187,93 @@ class Dashboard:
         return "#" * filled + "-" * (width - filled)
 
     def _render(self) -> None:
+        now = time.monotonic()
         terminal_width = shutil.get_terminal_size(fallback=(120, 20)).columns
         discovered, completed, failed, skipped, errors = self.counters.snapshot()
         states = self.worker_states.snapshot()
+        q_size = self.work_queue.qsize()
+        scanner_done = self.producer_done.is_set()
 
-        header = (
-            f"PROGRESS discovered={discovered} completed={completed} "
-            f"failed={failed} skipped_mounts={skipped} scan_errors={errors}"
-        )
+        # Items dequeued by workers but not yet accounted for (in-flight).
+        # max(0, ...) guards against the inherent race between counters.snapshot()
+        # and work_queue.qsize(): the two reads are not atomic.
+        in_progress = max(0, discovered - completed - failed - q_size)
 
-        bar_width = 20
-        worker_label_width = 4  # e.g. "W01 "
-        bar_padding_width = 3  # "[" + "] "
-        position_width = 9  # "X/Y" plus padding
-        status_width = 9  # status text plus padding
-        static_width = (
-            worker_label_width + bar_padding_width + bar_width + position_width + status_width
-        )
+        scanner_label = "DONE   " if scanner_done else "RUNNING"
+        if scanner_done and discovered > 0:
+            pct = min(100.0, (completed + failed) / discovered * 100)
+            pct_str = f"  ({pct:.1f}%)"
+        elif discovered > 0:
+            pct_str = ""
+        else:
+            pct_str = ""
+
+        sep = "-" * min(terminal_width, 80)
+
+        lines = [
+            f"Scanner: {scanner_label}  "
+            f"found={discovered}  q={q_size}  in-prog={in_progress}  "
+            f"skipped={skipped}  errors={errors}",
+            f"Overall: completed={completed}  failed={failed}{pct_str}",
+            sep,
+        ]
+
+        # Column widths for the per-worker rows.
+        bar_width = 12
+        # W01 + space = 4
+        # [bar] + space = bar_width+3
+        # pos:>7 + space = 8
+        # status:<16 + space = 17
+        # b#NNN:<6 + space = 7
+        # ok:NNN fl:NN:<14 + space = 15
+        # rc=NNN:<7 + space = 8
+        # time:<6 + 2 spaces = 8
+        # remaining = path
+        static_width = 4 + (bar_width + 3) + 8 + 17 + 7 + 15 + 8 + 8
         path_width = max(10, terminal_width - static_width)
 
-        lines = [header]
         for state in states:
-            position = (
+            pos = (
                 f"{state.batch_index}/{state.batch_total}"
                 if state.batch_total > 0
-                else "0/0"
+                else "--/--"
             )
-            rc = ""
-            if state.last_return_code is not None:
-                rc = f" rc={state.last_return_code}"
-            line = (
+
+            # Elapsed time: prefer per-directory time; fall back to batch time.
+            # A leading '~' signals that the value is the batch-level elapsed time
+            # (used when the worker is between directories, e.g. opening a log file).
+            if state.dir_start_time is not None:
+                time_str = f"{now - state.dir_start_time:.1f}s"
+            elif state.batch_start_time is not None:
+                time_str = f"~{now - state.batch_start_time:.1f}s"
+            else:
+                time_str = ""
+
+            rc_str = (
+                f"rc={state.last_return_code}"
+                if state.last_return_code is not None
+                else ""
+            )
+            b_str = f"b#{state.batch_id}" if state.batch_id > 0 else ""
+            stats = f"ok:{state.dirs_completed} fl:{state.dirs_failed}"
+
+            if state.status == "running":
+                bar = f"[{self._bar(state.batch_index, state.batch_total, bar_width)}]"
+            else:
+                bar = " " * (bar_width + 2)
+
+            prefix = (
                 f"W{state.worker_number:02d} "
-                f"[{self._bar(state.batch_index, state.batch_total, bar_width)}] "
-                f"{position:<8} {state.status:<8} "
-                f"{self._truncate(state.current_directory, path_width)}{rc}"
+                f"{bar} "
+                f"{pos:>7} "
+                f"{state.status:<16} "
+                f"{b_str:<6} "
+                f"{stats:<14} "
+                f"{rc_str:<7} "
+                f"{time_str:<6}  "
             )
-            lines.append(line)
+            path = self._truncate(state.current_directory, path_width)
+            lines.append(prefix + path)
 
         if self._rendered_lines:
             sys.stdout.write(f"\x1b[{self._rendered_lines}F")
@@ -399,6 +491,7 @@ def worker(
 
     try:
         while True:
+            worker_states.waiting(worker_number)
             batch = get_batch(
                 work_queue,
                 args.batch_size,
@@ -715,6 +808,7 @@ def main() -> int:
         dashboard = Dashboard(
             counters=counters,
             worker_states=worker_states,
+            work_queue=work_queue,
             producer_done=producer_done,
             stop_event=stop_event,
             refresh_seconds=args.dashboard_refresh_seconds,
@@ -770,6 +864,15 @@ def main() -> int:
         f"END discovered={discovered} completed={completed} failed={failed} "
         f"skipped_mounts={skipped} scan_errors={errors}"
     )
+
+    # Consistency check: every discovered directory should be accounted for.
+    # This runs after all worker threads have been joined, so counters are final.
+    if completed + failed != discovered:
+        logger.write(
+            f"WARNING: counter mismatch — discovered={discovered} but "
+            f"completed+failed={completed + failed} "
+            f"(unaccounted: {discovered - completed - failed})"
+        )
 
     if not dashboard_enabled:
         print(
