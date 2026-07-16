@@ -607,12 +607,11 @@ def parse_args() -> argparse.Namespace:
     args = parser.parse_args()
 
     # Precedence: explicit --streams > positional WORKERS > built-in default (3)
-    if args.streams is not None:
-        pass  # explicit --streams wins; positional WORKERS is ignored
-    elif args.streams_positional is not None:
-        args.streams = args.streams_positional
-    else:
-        args.streams = 3
+    if args.streams is None:
+        if args.streams_positional is not None:
+            args.streams = args.streams_positional
+        else:
+            args.streams = 3
 
     if args.streams < 1:
         parser.error("--streams / WORKERS must be at least 1")
