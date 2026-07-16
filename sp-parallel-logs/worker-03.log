@@ -1,0 +1,32 @@
+
+===== 2026-07-16 14:50:42 =====
+Directories: 1
+/tmp/systemd-private-bbf15b237efd4e12afd451ef6279f46e-haveged.service-qtljGg/
+
+--- 2026-07-16 14:50:42 ---
+Directory 1/1: /tmp/systemd-private-bbf15b237efd4e12afd451ef6279f46e-haveged.service-qtljGg/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/tmp/systemd-private-bbf15b237efd4e12afd451ef6279f46e-haveged.service-qtljGg/']
+
+===== 2026-07-16 14:50:42 =====
+Directories: 1
+/tmp/.XIM-unix/
+
+--- 2026-07-16 14:50:42 ---
+Directory 1/1: /tmp/.XIM-unix/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/tmp/.XIM-unix/']
+
+===== 2026-07-16 14:50:42 =====
+Directories: 1
+/tmp/snap-private-tmp/
+
+--- 2026-07-16 14:50:42 ---
+Directory 1/1: /tmp/snap-private-tmp/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/tmp/snap-private-tmp/']
+
+===== 2026-07-16 14:50:42 =====
+Directories: 1
+/tmp/.X11-unix/
+
+--- 2026-07-16 14:50:42 ---
+Directory 1/1: /tmp/.X11-unix/
+DRY RUN: ['dsmc', 'incremental', '-subdir=no', '-resourceutilization=2', '/tmp/.X11-unix/']
