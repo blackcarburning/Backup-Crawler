@@ -71,3 +71,1179 @@
 2026-07-16 14:50:42 worker-02: completed 2/2 rc=0 path=/tmp/systemd-private-bbf15b237efd4e12afd451ef6279f46e-systemd-logind.service-cMj7Sf
 2026-07-16 14:50:42 worker-01: completed 3/3 rc=0 path=/tmp/codeql-scratch-cdecc89df7a9702e/dbs
 2026-07-16 14:50:43 END discovered=16 completed=16 failed=0 skipped_mounts=0 scan_errors=7
+2026-07-16 15:33:38 START root=/etc streams=2 batch_size=20 dry_run=True dashboard=False dsmc_timeout=0 dsmc_idle_timeout=0
+2026-07-16 15:33:38 WARNING: supplied path is not listed as a mountpoint; processing remains restricted to its current filesystem
+2026-07-16 15:33:38 worker-01: reserved 1 directory (batch #1)
+2026-07-16 15:33:38 worker-01: completed 1/1 rc=0 path=/etc
+2026-07-16 15:33:38 worker-02: reserved 1 directory (batch #2)
+2026-07-16 15:33:38 worker-02: completed 1/1 rc=0 path=/etc/apache2
+2026-07-16 15:33:38 worker-01: reserved 1 directory (batch #3)
+2026-07-16 15:33:38 worker-01: completed 1/1 rc=0 path=/etc/apache2/conf-enabled
+2026-07-16 15:33:38 worker-02: reserved 1 directory (batch #4)
+2026-07-16 15:33:38 worker-02: completed 1/1 rc=0 path=/etc/apache2/sites-available
+2026-07-16 15:33:38 worker-01: reserved 1 directory (batch #5)
+2026-07-16 15:33:38 worker-01: completed 1/1 rc=0 path=/etc/apache2/sites-enabled
+2026-07-16 15:33:38 worker-02: reserved 1 directory (batch #6)
+2026-07-16 15:33:38 worker-02: completed 1/1 rc=0 path=/etc/apache2/mods-enabled
+2026-07-16 15:33:38 worker-01: reserved 1 directory (batch #7)
+2026-07-16 15:33:38 worker-01: completed 1/1 rc=0 path=/etc/apache2/conf-available
+2026-07-16 15:33:38 worker-02: reserved 1 directory (batch #8)
+2026-07-16 15:33:38 worker-02: completed 1/1 rc=0 path=/etc/apache2/mods-available
+2026-07-16 15:33:38 worker-01: reserved 1 directory (batch #9)
+2026-07-16 15:33:38 worker-01: completed 1/1 rc=0 path=/etc/terminfo
+2026-07-16 15:33:38 worker-02: reserved 1 directory (batch #10)
+2026-07-16 15:33:38 worker-01: reserved 1 directory (batch #11)
+2026-07-16 15:33:38 SCAN ERROR: '/etc/polkit-1/rules.d': [Errno 13] Permission denied: '/etc/polkit-1/rules.d'
+2026-07-16 15:33:52 START root=/etc streams=2 batch_size=20 dry_run=True dashboard=False dsmc_timeout=0 dsmc_idle_timeout=0
+2026-07-16 15:33:52 INFO: user-specified exclusion: '/etc/ssl'
+2026-07-16 15:33:52 WARNING: supplied path is not listed as a mountpoint; processing remains restricted to its current filesystem
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #1)
+2026-07-16 15:33:52 SKIP excluded path: /etc/ssl
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #2)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/apache2
+2026-07-16 15:33:52 worker-01: reserved 6 directories (batch #3)
+2026-07-16 15:33:52 worker-01: completed 1/6 rc=0 path=/etc/apache2/conf-enabled
+2026-07-16 15:33:52 worker-01: completed 2/6 rc=0 path=/etc/apache2/sites-available
+2026-07-16 15:33:52 worker-01: completed 3/6 rc=0 path=/etc/apache2/sites-enabled
+2026-07-16 15:33:52 worker-01: completed 4/6 rc=0 path=/etc/apache2/mods-enabled
+2026-07-16 15:33:52 worker-01: completed 5/6 rc=0 path=/etc/apache2/conf-available
+2026-07-16 15:33:52 worker-01: completed 6/6 rc=0 path=/etc/apache2/mods-available
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #4)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/terminfo
+2026-07-16 15:33:52 worker-01: reserved 3 directories (batch #5)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #6)
+2026-07-16 15:33:52 worker-01: completed 1/3 rc=0 path=/etc/firefox
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/apt/auth.conf.d
+2026-07-16 15:33:52 worker-01: completed 2/3 rc=0 path=/etc/apt
+2026-07-16 15:33:52 worker-02: reserved 5 directories (batch #7)
+2026-07-16 15:33:52 worker-01: completed 3/3 rc=0 path=/etc/apt/trusted.gpg.d
+2026-07-16 15:33:52 worker-02: completed 1/5 rc=0 path=/etc/apt/apt.conf.d
+2026-07-16 15:33:52 worker-01: reserved 3 directories (batch #8)
+2026-07-16 15:33:52 worker-02: completed 2/5 rc=0 path=/etc/apt/sources.list.d
+2026-07-16 15:33:52 worker-01: completed 1/3 rc=0 path=/etc/apparmor.d/local
+2026-07-16 15:33:52 worker-02: completed 3/5 rc=0 path=/etc/apt/keyrings
+2026-07-16 15:33:52 worker-01: completed 2/3 rc=0 path=/etc/apparmor.d/abi
+2026-07-16 15:33:52 worker-02: completed 4/5 rc=0 path=/etc/apt/preferences.d
+2026-07-16 15:33:52 worker-01: completed 3/3 rc=0 path=/etc/apparmor.d/abstractions
+2026-07-16 15:33:52 worker-02: completed 5/5 rc=0 path=/etc/apparmor.d
+2026-07-16 15:33:52 worker-01: reserved 4 directories (batch #9)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #10)
+2026-07-16 15:33:52 worker-01: completed 1/4 rc=0 path=/etc/apparmor.d/abstractions/apparmor_api
+2026-07-16 15:33:52 worker-01: completed 2/4 rc=0 path=/etc/apparmor.d/abstractions/ubuntu-browsers.d
+2026-07-16 15:33:52 SCAN ERROR: '/etc/polkit-1/rules.d': [Errno 13] Permission denied: '/etc/polkit-1/rules.d'
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/apparmor.d/tunables/home.d
+2026-07-16 15:33:52 worker-01: completed 3/4 rc=0 path=/etc/apparmor.d/tunables
+2026-07-16 15:33:52 worker-02: reserved 9 directories (batch #11)
+2026-07-16 15:33:52 worker-01: completed 4/4 rc=0 path=/etc/apparmor.d/tunables/multiarch.d
+2026-07-16 15:33:52 worker-02: completed 1/9 rc=0 path=/etc/apparmor.d/tunables/xdg-user-dirs.d
+2026-07-16 15:33:52 worker-02: completed 2/9 rc=0 path=/etc/apparmor.d/rsyslog.d
+2026-07-16 15:33:52 worker-02: completed 3/9 rc=0 path=/etc/apparmor.d/disable
+2026-07-16 15:33:52 worker-02: completed 4/9 rc=0 path=/etc/apparmor.d/force-complain
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #12)
+2026-07-16 15:33:52 worker-02: completed 5/9 rc=0 path=/etc/nvme
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/logcheck/ignore.d.paranoid
+2026-07-16 15:33:52 worker-02: completed 6/9 rc=0 path=/etc/sensors.d
+2026-07-16 15:33:52 worker-02: completed 7/9 rc=0 path=/etc/polkit-1
+2026-07-16 15:33:52 worker-02: completed 8/9 rc=0 path=/etc/polkit-1/rules.d
+2026-07-16 15:33:52 worker-02: completed 9/9 rc=0 path=/etc/logcheck
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #13)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/logcheck/ignore.d.server
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #14)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/logcheck/violations.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #15)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/logcheck/ignore.d.workstation
+2026-07-16 15:33:52 SCAN ERROR: '/etc/credstore': [Errno 13] Permission denied: '/etc/credstore'
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #16)
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #17)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/credstore
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/dhcp
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #18)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/dhcp/dhclient-exit-hooks.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #19)
+2026-07-16 15:33:52 SCAN ERROR: '/etc/multipath': [Errno 13] Permission denied: '/etc/multipath'
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/freetds
+2026-07-16 15:33:52 worker-02: reserved 2 directories (batch #20)
+2026-07-16 15:33:52 worker-02: completed 1/2 rc=0 path=/etc/multipath
+2026-07-16 15:33:52 worker-02: completed 2/2 rc=0 path=/etc/apport
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #21)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/apport/native-origins.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #22)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/apport/report-ignore
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #23)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/apport/blacklist.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #24)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/postgresql-common
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #25)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/postgresql-common/pg_upgradecluster.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #26)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/ppp
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #27)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/ppp/ip-up.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #28)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/ppp/ip-down.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #29)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/init.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #30)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/sos
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #31)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/sos/cleaner
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #32)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/sos/extras.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #33)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/sos/presets.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #34)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/sos/groups.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #35)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #36)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/rc2.d
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/fwupd
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #37)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/fwupd/bios-settings.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #38)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/fwupd/remotes.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #39)
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #40)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/network/if-post-down.d
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/network
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #41)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/network/if-up.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #42)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/network/if-pre-up.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #43)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #44)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/needrestart
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/needrestart/conf.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #45)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #46)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/needrestart/notify.d
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/needrestart/hook.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #47)
+2026-07-16 15:33:52 worker-02: reserved 2 directories (batch #48)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/needrestart/restart.d
+2026-07-16 15:33:52 worker-02: completed 1/2 rc=0 path=/etc/tmpfiles.d
+2026-07-16 15:33:52 worker-01: reserved 2 directories (batch #49)
+2026-07-16 15:33:52 worker-02: completed 2/2 rc=0 path=/etc/update-notifier
+2026-07-16 15:33:52 worker-01: completed 1/2 rc=0 path=/etc/rc4.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #50)
+2026-07-16 15:33:52 worker-01: completed 2/2 rc=0 path=/etc/xml
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/mercurial
+2026-07-16 15:33:52 worker-01: reserved 4 directories (batch #51)
+2026-07-16 15:33:52 worker-01: completed 1/4 rc=0 path=/etc/mercurial/hgrc.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #52)
+2026-07-16 15:33:52 worker-01: completed 2/4 rc=0 path=/etc/security
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/cron.daily
+2026-07-16 15:33:52 worker-01: completed 3/4 rc=0 path=/etc/security/limits.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #53)
+2026-07-16 15:33:52 worker-01: completed 4/4 rc=0 path=/etc/security/namespace.d
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/keyutils
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #54)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/python3
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #55)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/profile.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #56)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/logrotate.d
+2026-07-16 15:33:52 worker-02: reserved 2 directories (batch #57)
+2026-07-16 15:33:52 worker-02: completed 1/2 rc=0 path=/etc/python3.12
+2026-07-16 15:33:52 worker-02: completed 2/2 rc=0 path=/etc/usb_modeswitch.d
+2026-07-16 15:33:52 worker-01: reserved 2 directories (batch #58)
+2026-07-16 15:33:52 worker-01: completed 1/2 rc=0 path=/etc/chrony
+2026-07-16 15:33:52 worker-01: completed 2/2 rc=0 path=/etc/chrony/conf.d
+2026-07-16 15:33:52 worker-02: reserved 2 directories (batch #59)
+2026-07-16 15:33:52 worker-02: completed 1/2 rc=0 path=/etc/chrony/sources.d
+2026-07-16 15:33:52 worker-02: completed 2/2 rc=0 path=/etc/cni
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #60)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/cni/net.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #61)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/cron.weekly
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #62)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/snmp
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #63)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/rc5.d
+2026-07-16 15:33:52 worker-01: reserved 2 directories (batch #64)
+2026-07-16 15:33:52 worker-01: completed 1/2 rc=0 path=/etc/udisks2
+2026-07-16 15:33:52 worker-01: completed 2/2 rc=0 path=/etc/vim
+2026-07-16 15:33:52 worker-02: reserved 3 directories (batch #65)
+2026-07-16 15:33:52 worker-02: completed 1/3 rc=0 path=/etc/dbus-1
+2026-07-16 15:33:52 worker-02: completed 2/3 rc=0 path=/etc/dbus-1/system.d
+2026-07-16 15:33:52 worker-02: completed 3/3 rc=0 path=/etc/dbus-1/session.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #66)
+2026-07-16 15:33:52 worker-02: reserved 2 directories (batch #67)
+2026-07-16 15:33:52 worker-02: completed 1/2 rc=0 path=/etc/libblockdev/3
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/libblockdev
+2026-07-16 15:33:52 worker-02: completed 2/2 rc=0 path=/etc/libblockdev/3/conf.d
+2026-07-16 15:33:52 worker-01: reserved 2 directories (batch #68)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #69)
+2026-07-16 15:33:52 worker-01: completed 1/2 rc=0 path=/etc/mysql
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/mysql/mysql.conf.d
+2026-07-16 15:33:52 worker-01: completed 2/2 rc=0 path=/etc/mysql/conf.d
+2026-07-16 15:33:52 worker-02: reserved 2 directories (batch #70)
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #71)
+2026-07-16 15:33:52 worker-02: completed 1/2 rc=0 path=/etc/binfmt.d
+2026-07-16 15:33:52 worker-02: completed 2/2 rc=0 path=/etc/xdg
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/xdg/systemd
+2026-07-16 15:33:52 worker-02: reserved 3 directories (batch #72)
+2026-07-16 15:33:52 worker-02: completed 1/3 rc=0 path=/etc/xdg/autostart
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #73)
+2026-07-16 15:33:52 SCAN ERROR: '/etc/sudoers.d': [Errno 13] Permission denied: '/etc/sudoers.d'
+2026-07-16 15:33:52 worker-02: completed 2/3 rc=0 path=/etc/modprobe.d
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/sudoers.d
+2026-07-16 15:33:52 worker-02: completed 3/3 rc=0 path=/etc/ldap
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #74)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/sphinxsearch
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #75)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/pm
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #76)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/pm/sleep.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #77)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/ssh
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #78)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/ssh/sshd_config.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #79)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/ssh/ssh_config.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #80)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/initramfs-tools
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #81)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/initramfs-tools/conf.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #82)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/initramfs-tools/hooks
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #83)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/initramfs-tools/scripts
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #84)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/initramfs-tools/scripts/nfs-top
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #85)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/initramfs-tools/scripts/local-bottom
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #86)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/initramfs-tools/scripts/panic
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #87)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/initramfs-tools/scripts/init-top
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #88)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/initramfs-tools/scripts/local-top
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #89)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/initramfs-tools/scripts/nfs-bottom
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #90)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/initramfs-tools/scripts/local-premount
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #91)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/initramfs-tools/scripts/nfs-premount
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #92)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/initramfs-tools/scripts/init-premount
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #93)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/initramfs-tools/scripts/init-bottom
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #94)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #95)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/sysstat
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/ubuntu-advantage
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #96)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #97)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/debsig/policies
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/debsig
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #98)
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #99)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/debsig/policies/EB3E94ADBE1229CF
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/console-setup
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #100)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/cron.monthly
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #101)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #102)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/php/8.3
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/php
+2026-07-16 15:33:52 worker-02: reserved 2 directories (batch #103)
+2026-07-16 15:33:52 worker-02: completed 1/2 rc=0 path=/etc/php/8.3/cli
+2026-07-16 15:33:52 worker-02: completed 2/2 rc=0 path=/etc/php/8.3/cli/conf.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #104)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/php/8.3/fpm
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #105)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/php/8.3/fpm/conf.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #106)
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #107)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/php/8.3/fpm/pool.d
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/php/8.3/cgi
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #108)
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #109)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/php/8.3/cgi/conf.d
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/php/8.3/phpdbg
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #110)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/php/8.3/phpdbg/conf.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #111)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/php/8.3/mods-available
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #112)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/vulkan
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #113)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/vulkan/explicit_layer.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #114)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/vulkan/implicit_layer.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #115)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/vulkan/icd.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #116)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/opt
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #117)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/lighttpd
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #118)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/lighttpd/conf-enabled
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #119)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/lighttpd/conf-available
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #120)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/gtk-3.0
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #121)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/request-key.d
+2026-07-16 15:33:52 worker-01: reserved 2 directories (batch #122)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #123)
+2026-07-16 15:33:52 worker-01: completed 1/2 rc=0 path=/etc/systemd
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/systemd/user
+2026-07-16 15:33:52 worker-01: completed 2/2 rc=0 path=/etc/systemd/network
+2026-07-16 15:33:52 worker-02: reserved 5 directories (batch #124)
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #125)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/systemd/system/sysinit.target.wants
+2026-07-16 15:33:52 worker-02: completed 1/5 rc=0 path=/etc/systemd/user/sockets.target.wants
+2026-07-16 15:33:52 worker-01: reserved 2 directories (batch #126)
+2026-07-16 15:33:52 worker-02: completed 2/5 rc=0 path=/etc/systemd/user/timers.target.wants
+2026-07-16 15:33:52 worker-01: completed 1/2 rc=0 path=/etc/systemd/system/suspend.target.wants
+2026-07-16 15:33:52 worker-02: completed 3/5 rc=0 path=/etc/systemd/system
+2026-07-16 15:33:52 worker-01: completed 2/2 rc=0 path=/etc/systemd/system/multi-user.target.wants
+2026-07-16 15:33:52 worker-02: completed 4/5 rc=0 path=/etc/systemd/system/sockets.target.wants
+2026-07-16 15:33:52 worker-01: reserved 3 directories (batch #127)
+2026-07-16 15:33:52 worker-02: completed 5/5 rc=0 path=/etc/systemd/system/sleep.target.wants
+2026-07-16 15:33:52 worker-01: completed 1/3 rc=0 path=/etc/systemd/system/sysstat.service.wants
+2026-07-16 15:33:52 worker-02: reserved 2 directories (batch #128)
+2026-07-16 15:33:52 worker-01: completed 2/3 rc=0 path=/etc/systemd/system/mdmonitor.service.wants
+2026-07-16 15:33:52 worker-02: completed 1/2 rc=0 path=/etc/systemd/system/emergency.target.wants
+2026-07-16 15:33:52 worker-01: completed 3/3 rc=0 path=/etc/systemd/system/hybrid-sleep.target.wants
+2026-07-16 15:33:52 worker-02: completed 2/2 rc=0 path=/etc/systemd/system/graphical.target.wants
+2026-07-16 15:33:52 worker-01: reserved 6 directories (batch #129)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #130)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/systemd/system/suspend-then-hibernate.target.wants
+2026-07-16 15:33:52 worker-01: completed 1/6 rc=0 path=/etc/systemd/system/cloud-final.service.wants
+2026-07-16 15:33:52 worker-02: reserved 4 directories (batch #131)
+2026-07-16 15:33:52 worker-01: completed 2/6 rc=0 path=/etc/systemd/system/paths.target.wants
+2026-07-16 15:33:52 worker-02: completed 1/4 rc=0 path=/etc/systemd/system/final.target.wants
+2026-07-16 15:33:52 worker-01: completed 3/6 rc=0 path=/etc/systemd/system/network-online.target.wants
+2026-07-16 15:33:52 worker-02: completed 2/4 rc=0 path=/etc/systemd/system/rescue.target.wants
+2026-07-16 15:33:52 worker-01: completed 4/6 rc=0 path=/etc/systemd/system/cloud-config.target.wants
+2026-07-16 15:33:52 worker-02: completed 3/4 rc=0 path=/etc/systemd/system/getty.target.wants
+2026-07-16 15:33:52 worker-01: completed 5/6 rc=0 path=/etc/systemd/system/network.target.wants
+2026-07-16 15:33:52 worker-01: completed 6/6 rc=0 path=/etc/systemd/system/hibernate.target.wants
+2026-07-16 15:33:52 worker-02: completed 4/4 rc=0 path=/etc/systemd/system/cloud-init.target.wants
+2026-07-16 15:33:52 worker-01: reserved 6 directories (batch #132)
+2026-07-16 15:33:52 worker-01: completed 1/6 rc=0 path=/etc/systemd/system/timers.target.wants
+2026-07-16 15:33:52 worker-01: completed 2/6 rc=0 path=/etc/systemd/system/default.target.wants
+2026-07-16 15:33:52 worker-01: completed 3/6 rc=0 path=/etc/systemd/system/ssh.service.requires
+2026-07-16 15:33:52 worker-01: completed 4/6 rc=0 path=/etc/systemd/system/open-vm-tools.service.requires
+2026-07-16 15:33:52 worker-01: completed 5/6 rc=0 path=/etc/systemd/system-generators
+2026-07-16 15:33:52 worker-01: completed 6/6 rc=0 path=/etc/texmf
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #133)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/texmf/texmf.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #134)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/texmf/web2c
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #135)
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #136)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/ImageMagick-6
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/pki
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #137)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/pki/fwupd-metadata
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #138)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/pki/fwupd
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #139)
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #140)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/update-motd.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #141)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/ufw/applications.d
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/ufw
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #142)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/ufw/applications.d/apache2
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #143)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/rc6.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #144)
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #145)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/iscsi
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/libibverbs.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #146)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/alternatives
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #147)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #148)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/docker
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/pam.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #149)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/cifs-utils
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #150)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/fonts
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #151)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/fonts/conf.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #152)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/fonts/conf.avail
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #153)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/ld.so.conf.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #154)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/rc3.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #155)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #156)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.composer
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #157)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.rustup
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #158)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.rustup/update-hashes
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #159)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.rustup/tmp
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #160)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.rustup/downloads
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #161)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #162)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #163)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #164)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #165)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/clippy
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #166)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/rustfmt
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #167)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/cargo
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #168)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/rust
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #169)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/doc/rust/licenses
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #170)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/zsh
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #171)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/zsh/site-functions
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #172)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/man
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #173)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/share/man/man1
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #174)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #175)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/etc
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #176)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/etc/bash_completion.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #177)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/libexec
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #178)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #179)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #180)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/etc
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #181)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #182)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #183)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/bin/gcc-ld
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #184)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/x86_64-unknown-linux-gnu/lib
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #185)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.config
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #186)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.config/configstore
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #187)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.cargo
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #188)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.cargo/bin
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #189)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #190)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #191)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #192)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/.stage
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #193)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #194)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #195)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #196)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #197)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #198)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #199)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #200)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/fr
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #201)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/pt-BR
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #202)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/ja
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #203)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/es
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #204)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/cs
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #205)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/de
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #206)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/pl
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #207)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/it
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #208)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/ru
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #209)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #210)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-arm
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #211)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-arm/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #212)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/osx-arm64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #213)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/osx-arm64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #214)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-arm64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #215)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-arm64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #216)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-x64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #217)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-x64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #218)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-arm
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #219)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-arm/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #220)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-arm64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #221)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-arm64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #222)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-x64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #223)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-musl-x64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #224)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-x64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #225)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-x64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #226)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/browser
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #227)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/browser/lib
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #228)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/browser/lib/net8.0
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #229)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-x86
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #230)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win-x86/native
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #231)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #232)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win/lib
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #233)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win/lib/netcoreapp3.0
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #234)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win/lib/net9.0
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #235)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/win/lib/net8.0
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #236)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/osx-x64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #237)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/osx-x64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #238)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-ppc64le
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #239)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-ppc64le/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #240)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-arm64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #241)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/runtimes/linux-arm64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #242)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/tr
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #243)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/ko
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #244)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/zh-Hant
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #245)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net9.0/any/zh-Hans
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #246)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #247)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #248)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/fr
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #249)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/pt-BR
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #250)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/ja
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #251)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/es
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #252)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/cs
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #253)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/de
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #254)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/pl
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #255)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/it
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #256)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/ru
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #257)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #258)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-arm
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #259)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-arm/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #260)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/osx-arm64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #261)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/osx-arm64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #262)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-arm64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #263)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-arm64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #264)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-x64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #265)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-x64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #266)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-arm
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #267)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-arm/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #268)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-arm64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #269)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-arm64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #270)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-x64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #271)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-musl-x64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #272)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-x64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #273)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-x64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #274)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-x86
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #275)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win-x86/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #276)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #277)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win/lib
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #278)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win/lib/netcoreapp3.0
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #279)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win/lib/net9.0
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #280)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/win/lib/net8.0
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #281)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/osx-x64
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #282)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/osx-x64/native
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #283)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-ppc64le
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #284)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-ppc64le/native
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #285)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-arm64
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #286)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/runtimes/linux-arm64/native
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #287)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/tr
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #288)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/ko
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #289)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/zh-Hant
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #290)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net10.0/any/zh-Hans
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #291)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #292)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #293)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/fr
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #294)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/pt-BR
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #295)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/ja
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #296)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/es
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #297)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/cs
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #298)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/de
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #299)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/pl
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #300)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/it
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #301)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/ru
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #302)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #303)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-arm
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #304)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-arm/native
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #305)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/osx-arm64
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #306)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/osx-arm64/native
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #307)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-arm64
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #308)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-arm64/native
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #309)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-x64
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #310)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-x64/native
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #311)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-arm
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #312)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-arm/native
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #313)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-arm64
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #314)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-arm64/native
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #315)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-x64
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #316)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-musl-x64/native
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #317)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-x64
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #318)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-x64/native
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #319)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/browser
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #320)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/browser/lib
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #321)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/browser/lib/net8.0
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #322)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-x86
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #323)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win-x86/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #324)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #325)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win/lib
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #326)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win/lib/netcoreapp3.0
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #327)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/win/lib/net8.0
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #328)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/osx-x64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #329)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/osx-x64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #330)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-ppc64le
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #331)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-ppc64le/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #332)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-arm64
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #333)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/runtimes/linux-arm64/native
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #334)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/tr
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #335)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/ko
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #336)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/zh-Hant
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #337)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.dotnet/tools/.store/nbgv/3.10.85/nbgv/3.10.85/tools/net8.0/any/zh-Hans
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #338)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #339)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.github
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #340)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.github/workflows
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #341)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.github/ISSUE_TEMPLATE
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #342)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #343)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/refs
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #344)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/refs/heads
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #345)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/refs/remotes
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #346)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/refs/remotes/origin
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #347)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/refs/tags
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #348)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #349)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/3b
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #350)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/56
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #351)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/18
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #352)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/c1
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #353)
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #354)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/8b
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/3d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #355)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/15
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #356)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/b1
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #357)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/pack
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #358)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/e5
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #359)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/02
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #360)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/94
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #361)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/b2
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #362)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/e7
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #363)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/info
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #364)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/ed
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #365)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/c3
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #366)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/8e
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #367)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/d9
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #368)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/8c
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #369)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/f3
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #370)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/90
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #371)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/objects/5f
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #372)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/hooks
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #373)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/info
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #374)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/logs
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #375)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/logs/refs
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #376)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/logs/refs/heads
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #377)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/logs/refs/remotes
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #378)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/.git/logs/refs/remotes/origin
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #379)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #380)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/mocks
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #381)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/xenial
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #382)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/installation_iojs
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #383)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/slow
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #384)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/slow/nvm use
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #385)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/slow/nvm_get_latest
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #386)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/slow/nvm reinstall-packages
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #387)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/slow/nvm reinstall-packages/test-npmlink
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #388)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/slow/nvm uninstall
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #389)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/slow/nvm exec
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #390)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/slow/nvm run
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #391)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #392)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Listing paths
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #393)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Listing versions
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #394)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Set Colors
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #395)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #396)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #397)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #398)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #399)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested/node_modules
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #400)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested/node_modules/foo
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #401)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested/node_modules/foo/bar
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #402)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-pkg
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #403)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-pkg/a
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #404)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-pkg/a/b
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #405)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-pkg/a/b/c
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #406)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-pkg/a/b/c/d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #407)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/no-nesting-pkg
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #408)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #409)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m/a
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #410)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m/a/b
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #411)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m/a/b/c
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #412)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m/a/b/c/d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #413)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-n_m/node_modules
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #414)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested-pkg
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #415)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested-pkg/node_modules
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #416)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested-pkg/node_modules/foo
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #417)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/inside-n_m-nested-pkg/node_modules/foo/bar
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #418)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #419)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both/a
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #420)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both/a/b
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #421)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both/a/b/c
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #422)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both/a/b/c/d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #423)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/nested-both/node_modules
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #424)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/no-nesting-n_m
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #425)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/no-nesting-n_m/node_modules
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #426)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/no-nesting-both
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #427)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Unit tests/mocks/project_dirs/no-nesting-both/node_modules
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #428)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Aliases
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #429)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Aliases/percent in alias name
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #430)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Aliases/circular
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #431)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fast/Aliases/lts
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #432)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/installation_node
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #433)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/sourcing
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #434)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fixtures
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #435)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/test/fixtures/nvmrc
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #436)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/test/install_script
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #437)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/skel/.nvm/alias
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #438)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/skel/.nvm/alias/lts
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #439)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/rcS.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #440)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #441)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/cron.d
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/rsyslog.d
+2026-07-16 15:33:52 worker-01: reserved 3 directories (batch #442)
+2026-07-16 15:33:52 worker-01: completed 1/3 rc=0 path=/etc/gnutls
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #443)
+2026-07-16 15:33:52 worker-01: completed 2/3 rc=0 path=/etc/selinux
+2026-07-16 15:33:52 worker-01: completed 3/3 rc=0 path=/etc/default
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/default/grub.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #444)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/rc0.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #445)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/groff
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #446)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/depmod.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #447)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/cron.yearly
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #448)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #449)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/netplan
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/PackageKit
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #450)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/mdadm
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #451)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/cryptsetup-initramfs
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #452)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #453)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/udev
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/udev/rules.d
+2026-07-16 15:33:52 worker-01: reserved 2 directories (batch #454)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #455)
+2026-07-16 15:33:52 worker-01: completed 1/2 rc=0 path=/etc/udev/hwdb.d
+2026-07-16 15:33:52 worker-01: completed 2/2 rc=0 path=/etc/nginx
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/nginx/modules-available
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #456)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #457)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/nginx/conf.d
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/nginx/modules-enabled
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #458)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/nginx/snippets
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #459)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/nginx/sites-available
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #460)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/nginx/sites-enabled
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #461)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/lvm
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #462)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/lvm/profile
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #463)
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #464)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/networkd-dispatcher
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/networkd-dispatcher/degraded.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #465)
+2026-07-16 15:33:52 worker-01: reserved 3 directories (batch #466)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/networkd-dispatcher/routable.d
+2026-07-16 15:33:52 worker-01: completed 1/3 rc=0 path=/etc/networkd-dispatcher/carrier.d
+2026-07-16 15:33:52 worker-02: reserved 3 directories (batch #467)
+2026-07-16 15:33:52 worker-01: completed 2/3 rc=0 path=/etc/networkd-dispatcher/no-carrier.d
+2026-07-16 15:33:52 worker-01: completed 3/3 rc=0 path=/etc/networkd-dispatcher/off.d
+2026-07-16 15:33:52 worker-02: completed 1/3 rc=0 path=/etc/networkd-dispatcher/dormant.d
+2026-07-16 15:33:52 worker-01: reserved 5 directories (batch #468)
+2026-07-16 15:33:52 worker-02: completed 2/3 rc=0 path=/etc/apparmor
+2026-07-16 15:33:52 worker-01: completed 1/5 rc=0 path=/etc/ca-certificates
+2026-07-16 15:33:52 worker-02: completed 3/3 rc=0 path=/etc/rc1.d
+2026-07-16 15:33:52 worker-01: completed 2/5 rc=0 path=/etc/ca-certificates/update.d
+2026-07-16 15:33:52 worker-02: reserved 2 directories (batch #469)
+2026-07-16 15:33:52 worker-01: completed 3/5 rc=0 path=/etc/containers
+2026-07-16 15:33:52 worker-02: completed 1/2 rc=0 path=/etc/containers/systemd/users
+2026-07-16 15:33:52 worker-01: completed 4/5 rc=0 path=/etc/containers/networks
+2026-07-16 15:33:52 worker-02: completed 2/2 rc=0 path=/etc/containers/registries.conf.d
+2026-07-16 15:33:52 worker-01: completed 5/5 rc=0 path=/etc/containers/systemd
+2026-07-16 15:33:52 worker-02: reserved 2 directories (batch #470)
+2026-07-16 15:33:52 worker-02: completed 1/2 rc=0 path=/etc/cloud
+2026-07-16 15:33:52 worker-02: completed 2/2 rc=0 path=/etc/cloud/clean.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #471)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/cloud/templates
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #472)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/cloud/cloud.cfg.d
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #473)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/grub.d
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #474)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/pollinate
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #475)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/update-manager
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #476)
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/update-manager/release-upgrades.d
+2026-07-16 15:33:52 SCAN ERROR: '/etc/credstore.encrypted': [Errno 13] Permission denied: '/etc/credstore.encrypted'
+2026-07-16 15:33:52 worker-01: reserved 1 directory (batch #477)
+2026-07-16 15:33:52 worker-02: reserved 1 directory (batch #478)
+2026-07-16 15:33:52 worker-01: completed 1/1 rc=0 path=/etc/credstore.encrypted
+2026-07-16 15:33:52 worker-02: completed 1/1 rc=0 path=/etc/init
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #479)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/dconf
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #480)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/dconf/db
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #481)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/dictionaries-common
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #482)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/gss
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #483)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/gss/mech.d
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #484)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/byobu
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #485)
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #486)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/cron.hourly
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/emacs
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #487)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/emacs/site-start.d
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #488)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/supercat
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #489)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/landscape
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #490)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/plymouth
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #491)
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #492)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/newt
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/kernel
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #493)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/kernel/install.d
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #494)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/kernel/postrm.d
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #495)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/kernel/postinst.d
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #496)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/libnl-3
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #497)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/bash_completion.d
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #498)
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #499)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/containerd
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/sgml
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #500)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/ModemManager
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #501)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/ModemManager/connection.d
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #502)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/ModemManager/fcc-unlock.d
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #503)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/dpkg
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #504)
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #505)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/dpkg/dpkg.cfg.d
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/dpkg/origins
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #506)
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #507)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/firebird
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/firebird/3.0
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #508)
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #509)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/.java
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/modules-load.d
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #510)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/.java/.systemPrefs
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #511)
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #512)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/postgresql
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #513)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/postgresql/16
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/postgresql/16/main
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #514)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/postgresql/16/main/conf.d
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #515)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/sysctl.d
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #516)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/perl
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #517)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/perl/Net
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #518)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/perl/XML
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #519)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/perl/XML/SAX
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #520)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/vmware-tools
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #521)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/vmware-tools/vgauth
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #522)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/vmware-tools/vgauth/schemas
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #523)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/vmware-tools/scripts
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #524)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/vmware-tools/scripts/vmware
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #525)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/iproute2
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #526)
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #527)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/iproute2/rt_tables.d
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/iproute2/rt_protos.d
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #528)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/X11
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #529)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/X11/Xreset.d
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #530)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/X11/Xsession.d
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #531)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/X11/xkb
+2026-07-16 15:33:53 worker-01: reserved 1 directory (batch #532)
+2026-07-16 15:33:53 worker-01: completed 1/1 rc=0 path=/etc/X11/Xresources
+2026-07-16 15:33:53 worker-02: reserved 1 directory (batch #533)
+2026-07-16 15:33:53 worker-02: completed 1/1 rc=0 path=/etc/X11/xorg.conf.d
+2026-07-16 15:33:53 END discovered=610 completed=610 failed=0 skipped_mounts=0 excluded_paths=1 scan_errors=5 dsmc_insp=0 dsmc_bkup=0 bytes_i=0.00 B bytes_x=0.00 B
