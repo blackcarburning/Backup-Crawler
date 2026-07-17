@@ -16,8 +16,8 @@ Design notes
 * Per-worker dsmc processes are started with stdin=DEVNULL so they cannot block
   waiting for interactive input.
 * Configurable hard (--dsmc-timeout) and idle (--dsmc-idle-timeout) timeouts
-  allow safe termination of genuinely stalled processes.  Both default to 0
-  (disabled) to avoid interrupting legitimate long-running backups.
+  allow safe termination of genuinely stalled processes.  Idle timeout defaults
+  to 180 seconds (set 0 to disable); hard timeout remains disabled by default.
 * Durable scheduler state is stored in a SQLite database (standard-library
   ``sqlite3``) so unfinished scan frontier and backup work can be resumed after
   Ctrl-C, process termination, or host reboot.  The implementation provides
@@ -122,6 +122,12 @@ CONTROLLER_HEARTBEAT_SECS = 5
 # this many seconds so a chatty child process cannot trigger a DB commit on
 # every chunk of output.
 HEARTBEAT_INTERVAL = 5.0
+
+# Automatic retry control for idle (no-output) timeouts.
+DEFAULT_IDLE_TIMEOUT_SECS = 180.0
+DEFAULT_IDLE_TIMEOUT_RETRIES = 3
+IDLE_RETRY_BASE_DELAY_SECS = 5
+IDLE_RETRY_MAX_DELAY_SECS = 20
 
 # Base delay (seconds) for the first retry when the DB coordinator encounters a
 # transient SQLite lock error.  The actual delay is ``RETRY_BASE_DELAY_SECS *
@@ -535,12 +541,25 @@ def format_final_summary(
         lines += [
             f"  {'Scan pending/scanning/scanned:':<{_W}} {scan_counts.get('pending',0)}/{scan_counts.get('scanning',0)}/{scan_counts.get('scanned',0)}",
             f"  {'Scan excluded/skipped/errors:':<{_W}} {scan_counts.get('excluded',0)}/{scan_counts.get('skipped_mount',0)}/{scan_counts.get('scan_failed',0)}",
-            f"  {'Backup pending/running/succeeded:':<{_W}} {backup_counts.get('pending',0)}/{backup_counts.get('running',0)}/{backup_counts.get('succeeded',0)}",
+            f"  {'Backup pending-ready/delayed/running:':<{_W}} {backup_counts.get('pending_ready',0)}/{backup_counts.get('delayed_retry',0)}/{backup_counts.get('running',0)}",
+            f"  {'Backup pending-total/succeeded:':<{_W}} {backup_counts.get('pending',0)}/{backup_counts.get('succeeded',0)}",
             f"  {'Backup failed/timed_out/interrupted:':<{_W}} {backup_counts.get('failed',0)}/{backup_counts.get('timed_out',0)}/{backup_counts.get('interrupted',0)}",
         ]
         if root_counts:
             lines.append(f"  {'ROOT_FILES pending/running/succeeded:':<{_W}} {root_counts.get('pending',0)}/{root_counts.get('running',0)}/{root_counts.get('succeeded',0)}")
             lines.append(f"  {'ROOT_FILES failed/timed_out/interrupted:':<{_W}} {root_counts.get('failed',0)}/{root_counts.get('timed_out',0)}/{root_counts.get('interrupted',0)}")
+        if state_db_path:
+            idle_state_db = PersistentStateDB(state_db_path)
+            try:
+                idle_metrics = idle_state_db.idle_retry_metrics(run_id) if run_id else {}
+            finally:
+                idle_state_db.close()
+            lines.append(
+                f"  {'Idle-timeout attempts/recovered/exhausted:':<{_W}} "
+                f"{idle_metrics.get('idle_timeout_attempts',0)}/"
+                f"{idle_metrics.get('succeeded_after_idle_retry',0)}/"
+                f"{idle_metrics.get('idle_retry_exhausted_dirs',0)}"
+            )
         lines.append("")
 
     # --- ROOT_FILES accounting (only when crawl root is /) ---
@@ -1056,18 +1075,26 @@ class Dashboard:
             )
             scan_counts = ps.get('scan_counts', {})
             backup_counts = ps.get('backup_counts', {})
+            idle_metrics = ps.get('idle_metrics', {})
             lines.append(
                 f"Persisted: scan p/s/d/e/m={scan_counts.get('pending',0)}/{scan_counts.get('scanning',0)}/{scan_counts.get('scanned',0)}/{scan_counts.get('excluded',0)}/{scan_counts.get('skipped_mount',0)} "
-                f"backup p/r/ok/fl/to={backup_counts.get('pending',0)}/{backup_counts.get('running',0)}/{backup_counts.get('succeeded',0)}/{backup_counts.get('failed',0)}/{backup_counts.get('timed_out',0)}"
+                f"backup pr/pd/r/ok/fl/to={backup_counts.get('pending_ready',0)}/{backup_counts.get('delayed_retry',0)}/{backup_counts.get('running',0)}/{backup_counts.get('succeeded',0)}/{backup_counts.get('failed',0)}/{backup_counts.get('timed_out',0)}"
             )
             # Durable backlog line: reflects actual DB row counts (the real
             # persistent work backlog), not any in-memory queue size.
             lines.append(
                 f"Backlog: backup pending={backup_counts.get('pending',0)} "
+                f"(ready={backup_counts.get('pending_ready',0)} delayed={backup_counts.get('delayed_retry',0)}) "
                 f"running={backup_counts.get('running',0)}; "
                 f"scan pending={scan_counts.get('pending',0)} "
                 f"scanning={scan_counts.get('scanning',0)} "
                 f"scanned={scan_counts.get('scanned',0)}"
+            )
+            lines.append(
+                f"Idle timeout retries: attempts={idle_metrics.get('idle_timeout_attempts',0)} "
+                f"recovered={idle_metrics.get('succeeded_after_idle_retry',0)} "
+                f"exhausted={idle_metrics.get('idle_retry_exhausted_dirs',0)} "
+                f"delayed={idle_metrics.get('idle_retry_delayed_dirs',0)}"
             )
         lines.append(sep)
 
@@ -1304,6 +1331,7 @@ def build_operational_config(args: argparse.Namespace) -> dict:
         "shutdown_wait_seconds": args.shutdown_wait_seconds,
         "dsmc_timeout": args.dsmc_timeout,
         "dsmc_idle_timeout": args.dsmc_idle_timeout,
+        "idle_timeout_retries": args.idle_timeout_retries,
         "log_dir": args.log_dir,
         "state_db": args.state_db,
     }
@@ -1450,6 +1478,7 @@ class PersistentStateDB:
                 backup_pid INTEGER,
                 backup_claimed_at TEXT,
                 backup_heartbeat_at TEXT,
+                retry_not_before TEXT,
                 last_error TEXT,
                 last_return_code INTEGER,
                 last_started_at TEXT,
@@ -1553,6 +1582,18 @@ class PersistentStateDB:
                 f"Unsupported state DB schema version {row[0]} at {self.path}. "
                 f"Expected {SQLITE_SCHEMA_VERSION}. Automatic schema migration is not supported. To preserve the old DB, copy it aside manually before changing anything. If you want to continue with a fresh database, run with --new-run; that archives any existing DB to a timestamped .bak file and creates a new state DB."
             )
+        # Safe additive migration for older v1 DBs: adds a durable delayed-retry
+        # timestamp column for idle-timeout backoff.
+        columns = {
+            str(row["name"])
+            for row in conn.execute("PRAGMA table_info(directories)")
+        }
+        if "retry_not_before" not in columns:
+            conn.execute("ALTER TABLE directories ADD COLUMN retry_not_before TEXT")
+        conn.execute(
+            "CREATE INDEX IF NOT EXISTS idx_directories_backup_retry "
+            "ON directories(run_id, backup_status, retry_not_before, discovered_at, path_display)"
+        )
         conn.commit()
         if os.path.exists(self.path):
             try:
@@ -1691,7 +1732,8 @@ class PersistentStateDB:
         ).rowcount
         recovered_backup = conn.execute(
             "UPDATE directories SET backup_status='pending', backup_owner=NULL, backup_worker_id=NULL, backup_pid=NULL, "
-            "backup_claimed_at=NULL, backup_heartbeat_at=NULL, last_error=COALESCE(last_error, 'stale running claim recovered') "
+            "backup_claimed_at=NULL, backup_heartbeat_at=NULL, retry_not_before=NULL, "
+            "last_error=COALESCE(last_error, 'stale running claim recovered') "
             "WHERE run_id=? AND backup_status IN ('running','interrupted')",
             (row["id"],),
         ).rowcount
@@ -1778,6 +1820,7 @@ class PersistentStateDB:
             return f"No saved run found in {self.path}"
         counts = self.runtime_status_counts(row["id"])
         gs = self.load_global_stats(row["id"])
+        idle_metrics = self.idle_retry_metrics(row["id"])
         lines = [
             f"State DB: {self.path}",
             f"Run UUID: {row['id']}",
@@ -1794,7 +1837,7 @@ class PersistentStateDB:
             lines.append(f"  {key}: {counts['scan'].get(key, 0)}")
         lines.append("")
         lines.append("Backup statuses:")
-        for key in ("pending", "running", "succeeded", "failed", "timed_out", "interrupted", "skipped_root", "not_eligible"):
+        for key in ("pending", "pending_ready", "delayed_retry", "running", "succeeded", "failed", "timed_out", "interrupted", "skipped_root", "not_eligible"):
             lines.append(f"  {key}: {counts['backup'].get(key, 0)}")
         lines.extend([
             "",
@@ -1802,6 +1845,12 @@ class PersistentStateDB:
             f"Summaries parsed: {gs['summaries_parsed']}/{gs['dsmc_done']}",
             f"Processed bytes: {gs['bytes_inspected']} ({format_bytes(gs['bytes_inspected'])})",
             f"Transferred bytes: {gs['bytes_transferred']} ({format_bytes(gs['bytes_transferred'])})",
+            "",
+            "Idle-timeout retry metrics:",
+            f"  Idle timeout attempts: {idle_metrics['idle_timeout_attempts']}",
+            f"  Succeeded after idle retry: {idle_metrics['succeeded_after_idle_retry']}",
+            f"  Idle retry exhausted dirs: {idle_metrics['idle_retry_exhausted_dirs']}",
+            f"  Idle retry delayed dirs: {idle_metrics['idle_retry_delayed_dirs']}",
         ])
         return "\n".join(lines)
 
@@ -1926,11 +1975,18 @@ class PersistentStateDB:
         conn.commit()
         return counts
 
-    def pending_backup_count(self, run_id: str) -> int:
-        row = self._connect().execute(
-            "SELECT COUNT(*) AS n FROM directories WHERE run_id=? AND backup_status='pending'",
-            (run_id,),
-        ).fetchone()
+    def pending_backup_count(self, run_id: str, include_delayed: bool = True) -> int:
+        if include_delayed:
+            row = self._connect().execute(
+                "SELECT COUNT(*) AS n FROM directories WHERE run_id=? AND backup_status='pending'",
+                (run_id,),
+            ).fetchone()
+        else:
+            row = self._connect().execute(
+                "SELECT COUNT(*) AS n FROM directories WHERE run_id=? AND backup_status='pending' "
+                "AND (retry_not_before IS NULL OR retry_not_before<=?)",
+                (run_id, _utc_now()),
+            ).fetchone()
         return int(row['n'])
 
     def claim_backup_batch(
@@ -1943,8 +1999,11 @@ class PersistentStateDB:
         conn = self._connect()
         conn.execute("BEGIN IMMEDIATE")
         rows = conn.execute(
-            "SELECT path_bytes FROM directories WHERE run_id=? AND backup_status='pending' ORDER BY discovered_at, path_display LIMIT ?",
-            (run_id, limit),
+            "SELECT path_bytes FROM directories "
+            "WHERE run_id=? AND backup_status='pending' "
+            "AND (retry_not_before IS NULL OR retry_not_before<=?) "
+            "ORDER BY discovered_at, path_display LIMIT ?",
+            (run_id, _utc_now(), limit),
         ).fetchall()
         if not rows:
             conn.commit()
@@ -1954,7 +2013,7 @@ class PersistentStateDB:
         for row in rows:
             paths.append(decode_path_from_db(row['path_bytes']))
             conn.execute(
-                "UPDATE directories SET backup_status='running', backup_owner=?, backup_worker_id=?, backup_claimed_at=?, backup_heartbeat_at=? WHERE run_id=? AND path_bytes=? AND backup_status='pending'",
+                "UPDATE directories SET backup_status='running', backup_owner=?, backup_worker_id=?, backup_claimed_at=?, backup_heartbeat_at=?, retry_not_before=NULL WHERE run_id=? AND path_bytes=? AND backup_status='pending'",
                 (controller_id, worker_number, now, now, run_id, row['path_bytes']),
             )
         conn.commit()
@@ -1976,8 +2035,11 @@ class PersistentStateDB:
         conn = self._connect()
         conn.execute("BEGIN IMMEDIATE")
         row = conn.execute(
-            "SELECT path_bytes FROM directories WHERE run_id=? AND backup_status='pending' ORDER BY discovered_at, path_display LIMIT 1",
-            (run_id,),
+            "SELECT path_bytes FROM directories "
+            "WHERE run_id=? AND backup_status='pending' "
+            "AND (retry_not_before IS NULL OR retry_not_before<=?) "
+            "ORDER BY discovered_at, path_display LIMIT 1",
+            (run_id, _utc_now()),
         ).fetchone()
         if row is None:
             conn.commit()
@@ -1985,7 +2047,7 @@ class PersistentStateDB:
         now = _utc_now()
         path = decode_path_from_db(row['path_bytes'])
         conn.execute(
-            "UPDATE directories SET backup_status='running', backup_owner=?, backup_worker_id=?, backup_claimed_at=?, backup_heartbeat_at=? WHERE run_id=? AND path_bytes=? AND backup_status='pending'",
+            "UPDATE directories SET backup_status='running', backup_owner=?, backup_worker_id=?, backup_claimed_at=?, backup_heartbeat_at=?, retry_not_before=NULL WHERE run_id=? AND path_bytes=? AND backup_status='pending'",
             (controller_id, worker_number, now, now, run_id, row['path_bytes']),
         )
         conn.commit()
@@ -2056,9 +2118,39 @@ class PersistentStateDB:
         return_code: int,
         stats: DsmcInvocationStats,
         error_text: str | None = None,
-    ) -> None:
+        idle_timeout_retries: int = 0,
+    ) -> dict[str, object]:
         conn = self._connect()
         conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            "SELECT backup_attempts FROM directories WHERE run_id=? AND path_bytes=?",
+            (run_id, encode_path_for_db(path)),
+        ).fetchone()
+        if row is None:
+            raise RuntimeError(
+                f"finish_directory_attempt called for unknown directory: run_id={run_id} path={path!r}"
+            )
+        attempt_number = int(row["backup_attempts"])
+        retries_used = max(0, attempt_number - 1)
+        is_idle_timeout = return_code == IDLE_TIMEOUT_RC and outcome == "timed_out"
+        should_retry = (
+            is_idle_timeout
+            and idle_timeout_retries > 0
+            and retries_used < idle_timeout_retries
+        )
+        total_idle_attempts = idle_timeout_retries + 1
+        retry_delay_secs: int | None = None
+        retry_not_before: str | None = None
+        directory_status = outcome
+        directory_error = error_text
+        if should_retry:
+            retry_delay_secs = idle_retry_backoff_seconds(attempt_number)
+            retry_not_before = _utc_now_from_epoch(time.time() + retry_delay_secs)
+            directory_status = "pending"
+            directory_error = (
+                f"idle timeout (attempt {attempt_number}/{total_idle_attempts}); "
+                f"auto-retry {retries_used + 1} of {idle_timeout_retries} in {retry_delay_secs}s"
+            )
         stats_dict = _stats_to_dict(stats)
         conn.execute(
             """
@@ -2083,10 +2175,18 @@ class PersistentStateDB:
             ),
         )
         conn.execute(
-            "UPDATE directories SET backup_status=?, backup_owner=NULL, backup_worker_id=NULL, backup_pid=NULL, backup_claimed_at=NULL, backup_heartbeat_at=NULL, last_return_code=?, last_error=?, last_finished_at=? WHERE run_id=? AND path_bytes=?",
-            (outcome, return_code, error_text, _utc_now(), run_id, encode_path_for_db(path)),
+            "UPDATE directories SET backup_status=?, backup_owner=NULL, backup_worker_id=NULL, backup_pid=NULL, backup_claimed_at=NULL, backup_heartbeat_at=NULL, retry_not_before=?, last_return_code=?, last_error=?, last_finished_at=? WHERE run_id=? AND path_bytes=?",
+            (directory_status, retry_not_before, return_code, directory_error, _utc_now(), run_id, encode_path_for_db(path)),
         )
         conn.commit()
+        return {
+            "attempt_number": attempt_number,
+            "auto_retried": should_retry,
+            "retry_delay_secs": retry_delay_secs,
+            "retry_number": attempt_number if should_retry else 0,
+            "retry_limit": idle_timeout_retries,
+            "terminal_idle_timeout": bool(is_idle_timeout and not should_retry),
+        }
 
     def claim_root_manifest(self, run_id: str) -> bool:
         conn = self._connect()
@@ -2276,7 +2376,51 @@ class PersistentStateDB:
             "SELECT status, COUNT(*) AS n FROM root_file_chunks WHERE run_id=? GROUP BY status",
             (run_id,),
         )}
+        delayed = conn.execute(
+            "SELECT COUNT(*) AS n FROM directories "
+            "WHERE run_id=? AND backup_status='pending' "
+            "AND retry_not_before IS NOT NULL AND retry_not_before>?",
+            (run_id, _utc_now()),
+        ).fetchone()
+        delayed_count = int(delayed['n'] if delayed is not None else 0)
+        pending_total = int(backup_counts.get('pending', 0))
+        backup_counts['delayed_retry'] = delayed_count
+        backup_counts['pending_ready'] = max(0, pending_total - delayed_count)
         return {"scan": scan_counts, "backup": backup_counts, "root_chunks": root_counts}
+
+    def idle_retry_metrics(self, run_id: str) -> dict[str, int]:
+        conn = self._connect()
+        idle_attempts = conn.execute(
+            "SELECT COUNT(*) AS n FROM attempts "
+            "WHERE run_id=? AND item_kind='directory' AND return_code=? AND outcome='timed_out'",
+            (run_id, IDLE_TIMEOUT_RC),
+        ).fetchone()
+        succeeded_after_retry = conn.execute(
+            "SELECT COUNT(*) AS n FROM directories d "
+            "WHERE d.run_id=? AND d.backup_status='succeeded' AND EXISTS ("
+            "  SELECT 1 FROM attempts a "
+            "  WHERE a.run_id=d.run_id AND a.item_kind='directory' AND a.path_bytes=d.path_bytes "
+            "    AND a.return_code=? AND a.outcome='timed_out'"
+            ")",
+            (run_id, IDLE_TIMEOUT_RC),
+        ).fetchone()
+        exhausted = conn.execute(
+            "SELECT COUNT(*) AS n FROM directories "
+            "WHERE run_id=? AND backup_status='timed_out' AND last_return_code=?",
+            (run_id, IDLE_TIMEOUT_RC),
+        ).fetchone()
+        delayed = conn.execute(
+            "SELECT COUNT(*) AS n FROM directories "
+            "WHERE run_id=? AND backup_status='pending' "
+            "AND retry_not_before IS NOT NULL AND retry_not_before>?",
+            (run_id, _utc_now()),
+        ).fetchone()
+        return {
+            "idle_timeout_attempts": int(idle_attempts['n'] if idle_attempts is not None else 0),
+            "succeeded_after_idle_retry": int(succeeded_after_retry['n'] if succeeded_after_retry is not None else 0),
+            "idle_retry_exhausted_dirs": int(exhausted['n'] if exhausted is not None else 0),
+            "idle_retry_delayed_dirs": int(delayed['n'] if delayed is not None else 0),
+        }
 
     def directory_counts(self, run_id: str) -> dict[str, int]:
         status = self.runtime_status_counts(run_id)
@@ -2357,6 +2501,7 @@ class PersistentStateDB:
     def dashboard_snapshot(self, run_ctx: RunContext) -> dict[str, object]:
         row = self.load_run_row()
         completion = self.completion_snapshot(run_ctx.run_id)
+        idle_metrics = self.idle_retry_metrics(run_ctx.run_id)
         return {
             "mode": "RESUMED" if run_ctx.resumed else "NEW",
             "run_id": run_ctx.run_id,
@@ -2369,6 +2514,7 @@ class PersistentStateDB:
             "run_state": row['state'] if row is not None else None,
             "scan_counts": completion['counts']['scan'],
             "backup_counts": completion['counts']['backup'],
+            "idle_metrics": idle_metrics,
         }
 
 
@@ -2601,6 +2747,13 @@ def classify_return_code(return_code: int, stop_event: threading.Event) -> str:
     return 'failed'
 
 
+def idle_retry_backoff_seconds(attempt_number: int) -> int:
+    """Return bounded backoff for the Nth automatic idle-timeout retry."""
+    if attempt_number <= 0:
+        return 0
+    return min(IDLE_RETRY_BASE_DELAY_SECS * (2 ** (attempt_number - 1)), IDLE_RETRY_MAX_DELAY_SECS)
+
+
 def make_directory_dsmc_callbacks(
     coordinator: "DBCoordinator",
     run_ctx: RunContext,
@@ -2651,6 +2804,8 @@ def build_resume_command(args: argparse.Namespace, root: str) -> str:
         str(args.dsmc_timeout),
         '--dsmc-idle-timeout',
         str(args.dsmc_idle_timeout),
+        '--idle-timeout-retries',
+        str(args.idle_timeout_retries),
         '--resourceutilization',
         str(args.resourceutilization),
         '--batch-size',
@@ -3148,6 +3303,7 @@ def run_dsmc_supervised(
     stop_event: threading.Event,
     child_started_callback=None,
     child_output_callback=None,
+    timeout_metadata: dict | None = None,
 ) -> tuple[int, DsmcInvocationStats]:
     """
     Launch dsmc with stdin=DEVNULL, stream combined output, supervise timeouts.
@@ -3258,6 +3414,8 @@ def run_dsmc_supervised(
             rc = proc.poll()
             if rc is not None:
                 reader_thread.join(timeout=10)
+                if timeout_metadata is not None:
+                    timeout_metadata.clear()
                 return rc, stats
 
             # Compute next sleep; bound by nearest timeout
@@ -3283,6 +3441,17 @@ def run_dsmc_supervised(
     logger.write(
         f"{worker_name}: killing dsmc pid={proc.pid} ({timed_out_reason})"
     )
+    if timeout_metadata is not None:
+        timeout_metadata.clear()
+        timeout_metadata.update(
+            {
+                "reason": timed_out_reason,
+                "pid": proc.pid,
+                "idle_secs": now - last_output_ts[0],
+                "elapsed_secs": now - start_time,
+                "is_idle_timeout": is_idle_timeout,
+            }
+        )
     _kill_process_group(proc, logger, worker_name, timed_out_reason or "timeout")
     reader_thread.join(timeout=5)
     return synthetic_rc, stats
@@ -3608,6 +3777,7 @@ def persistent_worker(
                     started = True
                     return_code = 0
                     inv_stats = DsmcInvocationStats()
+                    timeout_meta: dict[str, object] = {}
                     child_started_callback, child_output_callback = make_directory_dsmc_callbacks(
                         coordinator,
                         run_ctx,
@@ -3629,18 +3799,25 @@ def persistent_worker(
                             stop_event=stop_event,
                             child_started_callback=child_started_callback,
                             child_output_callback=child_output_callback,
+                            timeout_metadata=timeout_meta,
                         )
                         global_stats.add_invocation(inv_stats)
                     except OSError as exc:
                         return_code = 127
                         logger.write(f"{worker_name}: OS error running dsmc: {exc}")
                     outcome = classify_return_code(return_code, stop_event)
+                    is_idle_timeout = bool(
+                        timeout_meta.get("is_idle_timeout", return_code == IDLE_TIMEOUT_RC)
+                    )
                     error_text = None
                     if outcome == "interrupted":
                         error_text = "interrupted by stop request"
                     elif outcome == "timed_out":
-                        error_text = "timeout"
-                    coordinator.submit_critical(
+                        if is_idle_timeout:
+                            error_text = timeout_meta.get("reason") or "idle timeout"
+                        else:
+                            error_text = timeout_meta.get("reason") or "timeout"
+                    finish_meta = coordinator.submit_critical(
                         'finish_directory_attempt',
                         run_ctx.run_id,
                         path,
@@ -3649,6 +3826,7 @@ def persistent_worker(
                         return_code,
                         inv_stats,
                         error_text=error_text,
+                        idle_timeout_retries=args.idle_timeout_retries,
                     )
                     worker_states.set_result(worker_number, return_code, inv_stats)
                     if outcome == "succeeded":
@@ -3657,11 +3835,29 @@ def persistent_worker(
                             f"{worker_name}: completed rc={return_code} path={path}"
                         )
                     elif outcome == "timed_out":
-                        counters.add("failed")
-                        logger.write(
-                            f"{worker_name}: TIMEOUT rc={return_code} path={path}"
-                        )
-                        failed_logger.write(f"{return_code}{_TSV_SEP}{path}{_TSV_SEP}# timeout")
+                        if bool(finish_meta.get("auto_retried")):
+                            logger.write(
+                                f"{worker_name}: IDLE TIMEOUT rc={return_code} path={path} "
+                                f"pid={timeout_meta.get('pid')} idle={timeout_meta.get('idle_secs', 0.0):.1f}s "
+                                f"attempt={finish_meta.get('attempt_number')} "
+                                f"retry={finish_meta.get('retry_number')}/{finish_meta.get('retry_limit')} "
+                                f"action=auto-retry delay={finish_meta.get('retry_delay_secs')}s"
+                            )
+                        else:
+                            counters.add("failed")
+                            idle_suffix = (
+                                " # idle timeout retry exhausted"
+                                if is_idle_timeout
+                                else " # timeout"
+                            )
+                            logger.write(
+                                f"{worker_name}: TIMEOUT rc={return_code} path={path} "
+                                f"pid={timeout_meta.get('pid')} idle={timeout_meta.get('idle_secs', 0.0):.1f}s "
+                                f"attempt={finish_meta.get('attempt_number')} "
+                                f"retry={finish_meta.get('retry_number')}/{finish_meta.get('retry_limit')} "
+                                f"action=terminal"
+                            )
+                            failed_logger.write(f"{return_code}{_TSV_SEP}{path}{_TSV_SEP}{idle_suffix}")
                     elif outcome == "interrupted":
                         logger.write(
                             f"{worker_name}: interrupted rc={return_code} path={path}"
@@ -3860,10 +4056,15 @@ def progress_reporter(
         extra = ""
         if state_snapshot_provider is not None:
             ps = state_snapshot_provider()
+            backup_counts = ps.get('backup_counts', {})
+            idle_metrics = ps.get('idle_metrics', {})
             extra = (
                 f" mode={ps.get('mode','?')} reused={ps.get('reused_completed',0)}"
                 f" recovered_scan={ps.get('recovered_scan_claims',0)}"
                 f" recovered_backup={ps.get('recovered_backup_claims',0)}"
+                f" pending_ready={backup_counts.get('pending_ready',0)}"
+                f" delayed_retry={backup_counts.get('delayed_retry',0)}"
+                f" idle_retry_attempts={idle_metrics.get('idle_timeout_attempts',0)}"
             )
         print(
             f"PROGRESS discovered={discovered} q={q_size} in-prog={in_progress} "
@@ -3964,12 +4165,23 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dsmc-idle-timeout",
         type=float,
-        default=0,
+        default=DEFAULT_IDLE_TIMEOUT_SECS,
         metavar="SECONDS",
         help=(
             "Timeout when dsmc produces no output for this many seconds "
-            "(0 = disabled, default: 0). "
-            "dsmc can legitimately stay quiet while processing large files."
+            f"(0 = disabled, default: {DEFAULT_IDLE_TIMEOUT_SECS:g}). "
+            "Workers are shown as quiet after 60 seconds without output."
+        ),
+    )
+    parser.add_argument(
+        "--idle-timeout-retries",
+        type=int,
+        default=DEFAULT_IDLE_TIMEOUT_RETRIES,
+        metavar="N",
+        help=(
+            "Automatic retries after an idle-timeout directory attempt "
+            f"(default: {DEFAULT_IDLE_TIMEOUT_RETRIES}; 0 = no automatic retry). "
+            "Applies only to no-output idle timeouts."
         ),
     )
     parser.add_argument(
@@ -4090,6 +4302,8 @@ def parse_args() -> argparse.Namespace:
         parser.error("--dsmc-timeout must be >= 0 (0 = disabled)")
     if args.dsmc_idle_timeout < 0:
         parser.error("--dsmc-idle-timeout must be >= 0 (0 = disabled)")
+    if args.idle_timeout_retries < 0:
+        parser.error("--idle-timeout-retries must be >= 0")
 
     return args
 
@@ -4504,6 +4718,7 @@ def run_persistent_main(args: argparse.Namespace) -> int:
             f"START root={root} streams={args.streams} batch_size={args.batch_size} "
             f"dashboard={dashboard_enabled} state_db={args.state_db} mode={'resume' if run_ctx.resumed else 'new'} "
             f"dsmc_timeout={args.dsmc_timeout} dsmc_idle_timeout={args.dsmc_idle_timeout} "
+            f"idle_timeout_retries={args.idle_timeout_retries} "
             f"root_files_job={is_root_crawl} run_id={run_ctx.run_id} execution_id={run_ctx.execution_id}"
         )
         if run_ctx.resumed:
