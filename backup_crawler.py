@@ -1293,6 +1293,9 @@ class PersistentStateDB:
     def _connect(self) -> sqlite3.Connection:
         conn = getattr(self._local, "connection", None)
         if conn is None:
+            # Each thread stores its own SQLite connection in thread-local state,
+            # so disabling SQLite's same-thread check here is safe and avoids
+            # cross-thread reuse of a single connection object.
             conn = sqlite3.connect(self.path, timeout=5, check_same_thread=False)
             conn.row_factory = sqlite3.Row
             self._apply_pragmas(conn)
@@ -1467,7 +1470,7 @@ class PersistentStateDB:
         elif int(row[0]) != SQLITE_SCHEMA_VERSION:
             raise RuntimeError(
                 f"Unsupported state DB schema version {row[0]} at {self.path}. "
-                f"Expected {SQLITE_SCHEMA_VERSION}. Copy the database aside before upgrading or starting a new run."
+                f"Expected {SQLITE_SCHEMA_VERSION}. Automatic schema migration is not supported; copy the database aside and use --new-run for a fresh state DB if needed."
             )
         conn.commit()
         if os.path.exists(self.path):
@@ -1513,13 +1516,9 @@ class PersistentStateDB:
         fingerprint = build_config_fingerprint(coverage_config)
         lease_expires = _utc_now_from_epoch(time.time() + CONTROLLER_LEASE_SECS)
         conn = self._connect()
+        # One archived/new-run DB contains at most one live run. Deleting the
+        # parent run row is enough because the child tables use ON DELETE CASCADE.
         conn.execute("DELETE FROM runs")
-        conn.execute("DELETE FROM directories")
-        conn.execute("DELETE FROM attempts")
-        conn.execute("DELETE FROM root_files_state")
-        conn.execute("DELETE FROM root_files_entries")
-        conn.execute("DELETE FROM root_file_chunks")
-        conn.execute("DELETE FROM root_file_chunk_members")
         conn.execute(
             """
             INSERT INTO runs(
@@ -2184,6 +2183,8 @@ class PersistentStateDB:
         if execution_id is not None:
             where += " AND execution_id=?"
             params.append(execution_id)
+        # The WHERE fragment is constructed entirely from fixed internal code,
+        # not from user input, so this formatted SQL remains parameter-safe.
         row = self._connect().execute(
             f"""
             SELECT
@@ -3244,6 +3245,12 @@ def persistent_worker(
                         )
                         return_code = 0
                         inv_stats = DsmcInvocationStats()
+                        def _on_child_started(pid: int, _start: float, current_path: str = path) -> None:
+                            state_db.set_directory_child_pid(run_ctx.run_id, current_path, pid, _utc_now())
+
+                        def _on_child_output(_ts: float, current_path: str = path) -> None:
+                            state_db.touch_directory_attempt(run_ctx.run_id, current_path)
+
                         try:
                             return_code, inv_stats = run_dsmc_supervised(
                                 command=command,
@@ -3257,16 +3264,8 @@ def persistent_worker(
                                 dsmc_timeout=args.dsmc_timeout,
                                 dsmc_idle_timeout=args.dsmc_idle_timeout,
                                 stop_event=stop_event,
-                                child_started_callback=lambda pid, _start, p=path: state_db.set_directory_child_pid(
-                                    run_ctx.run_id,
-                                    p,
-                                    pid,
-                                    _utc_now(),
-                                ),
-                                child_output_callback=lambda _ts, p=path: state_db.touch_directory_attempt(
-                                    run_ctx.run_id,
-                                    p,
-                                ),
+                                child_started_callback=_on_child_started,
+                                child_output_callback=_on_child_output,
                             )
                             global_stats.add_invocation(inv_stats)
                         except OSError as exc:
@@ -3400,6 +3399,12 @@ def persistent_run_root_files_job(
                 )
                 return_code = 0
                 inv_stats = DsmcInvocationStats()
+                def _on_root_child_started(pid: int, _start: float, chunk_id: int = int(chunk["id"])) -> None:
+                    state_db.set_root_chunk_pid(chunk_id, pid)
+
+                def _on_root_child_output(_ts: float, chunk_id: int = int(chunk["id"])) -> None:
+                    state_db.touch_root_chunk(chunk_id)
+
                 try:
                     return_code, inv_stats = run_dsmc_supervised(
                         command=command,
@@ -3413,8 +3418,8 @@ def persistent_run_root_files_job(
                         dsmc_timeout=args.dsmc_timeout,
                         dsmc_idle_timeout=args.dsmc_idle_timeout,
                         stop_event=stop_event,
-                        child_started_callback=lambda pid, _start, cid=int(chunk["id"]): state_db.set_root_chunk_pid(cid, pid),
-                        child_output_callback=lambda _ts, cid=int(chunk["id"]): state_db.touch_root_chunk(cid),
+                        child_started_callback=_on_root_child_started,
+                        child_output_callback=_on_root_child_output,
                     )
                     global_stats.add_invocation(inv_stats)
                 except OSError as exc:
@@ -3510,7 +3515,7 @@ def parse_args() -> argparse.Namespace:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("mountpoint", nargs="?", help="Mounted filesystem to process")
+    parser.add_argument("mountpoint", nargs="?", help="Mounted filesystem to process (required unless --status is used)")
     parser.add_argument(
         "streams_positional",
         nargs="?",
