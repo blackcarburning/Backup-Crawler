@@ -1376,5 +1376,235 @@ class TestWorkerStatesRootFilesSlot(unittest.TestCase):
         self.assertEqual(state.current_directory, "scanning /")
 
 
+# ---------------------------------------------------------------------------
+# 13. Dashboard.truncate_path — path column display truncation
+# ---------------------------------------------------------------------------
+
+class TestTruncatePath(unittest.TestCase):
+    """Dashboard.truncate_path must truncate long paths with an ASCII ellipsis
+    while preserving the tail (basename) of the path."""
+
+    # --- basic behaviour ---
+
+    def test_short_path_unchanged(self):
+        path = "/home/user/backup"
+        self.assertEqual(bc.Dashboard.truncate_path(path, 40), path)
+
+    def test_exact_fit_unchanged(self):
+        path = "abc"
+        self.assertEqual(bc.Dashboard.truncate_path(path, 3), path)
+
+    def test_long_path_truncated_with_prefix_ellipsis(self):
+        path = "/very/long/path/to/some/directory/with/a/meaningful/basename"
+        result = bc.Dashboard.truncate_path(path, 20)
+        self.assertEqual(len(result), 20)
+        self.assertTrue(result.startswith("..."))
+
+    def test_truncated_result_has_correct_length(self):
+        path = "/" + "x" * 100
+        for w in (5, 10, 20, 40):
+            result = bc.Dashboard.truncate_path(path, w)
+            self.assertEqual(len(result), w, f"width={w}: expected {w} chars, got {len(result)}")
+
+    # --- tail/basename preservation ---
+
+    def test_tail_basename_preserved(self):
+        path = "/home/user/node_modules/parse5/lib/extensions"
+        result = bc.Dashboard.truncate_path(path, 30)
+        # The basename and surrounding components must appear at the end.
+        self.assertTrue(result.endswith("parse5/lib/extensions"))
+
+    def test_suffix_is_ascii_not_unicode(self):
+        path = "/a/very/long/path/that/needs/truncation"
+        result = bc.Dashboard.truncate_path(path, 10)
+        # Must not contain the Unicode ellipsis character
+        self.assertNotIn("\u2026", result)
+        self.assertTrue(result.startswith("..."))
+
+    # --- edge cases: very small widths ---
+
+    def test_width_zero_returns_empty(self):
+        self.assertEqual(bc.Dashboard.truncate_path("/some/path", 0), "")
+
+    def test_width_negative_returns_empty(self):
+        self.assertEqual(bc.Dashboard.truncate_path("/some/path", -5), "")
+
+    def test_width_1_returns_first_suffix_char(self):
+        result = bc.Dashboard.truncate_path("/some/path", 1)
+        self.assertEqual(result, ".")
+        self.assertEqual(len(result), 1)
+
+    def test_width_2_returns_two_suffix_chars(self):
+        result = bc.Dashboard.truncate_path("/some/path", 2)
+        self.assertEqual(result, "..")
+        self.assertEqual(len(result), 2)
+
+    def test_width_3_exact_suffix_width(self):
+        result = bc.Dashboard.truncate_path("/some/path", 3)
+        self.assertEqual(result, "...")
+        self.assertEqual(len(result), 3)
+
+    def test_width_4_includes_one_path_char(self):
+        path = "/abcde"
+        result = bc.Dashboard.truncate_path(path, 4)
+        self.assertEqual(len(result), 4)
+        self.assertTrue(result.startswith("..."))
+        # Last char must be the tail of the path
+        self.assertEqual(result[-1], "e")
+
+    def test_empty_path_unchanged(self):
+        self.assertEqual(bc.Dashboard.truncate_path("", 10), "")
+
+    def test_custom_suffix(self):
+        path = "/home/user/documents/project/README.md"
+        result = bc.Dashboard.truncate_path(path, 20, suffix=">>")
+        self.assertEqual(len(result), 20)
+        self.assertTrue(result.startswith(">>"))
+
+    # --- ROOT_FILES chunk label (not a file path, but must still fit) ---
+
+    def test_chunk_label_unchanged_when_short(self):
+        label = "chunk 1/3"
+        self.assertEqual(bc.Dashboard.truncate_path(label, 20), label)
+
+    def test_chunk_label_truncated_when_long(self):
+        label = "chunk 100/200 (some extra description text that is very long)"
+        result = bc.Dashboard.truncate_path(label, 20)
+        self.assertEqual(len(result), 20)
+        self.assertTrue(result.startswith("..."))
+
+
+# ---------------------------------------------------------------------------
+# 14. Dashboard worker-row width constraints
+# ---------------------------------------------------------------------------
+
+class TestDashboardRowWidth(unittest.TestCase):
+    """Worker rows must not exceed the terminal width at representative sizes."""
+
+    _BAR_WIDTH = 10
+    _STATUS_WIDTH = bc.Dashboard._STATUS_WIDTH
+    _MAX_PATH = bc.Dashboard._MAX_PATH_DISPLAY
+
+    def _build_prefix(self, label: str, bar: str, pos: str, status: str,
+                      b_str: str, pid_str: str, time_str: str, idle_str: str,
+                      stats_str: str, rc_str: str) -> str:
+        """Mirror the f-string in Dashboard._render exactly."""
+        return (
+            f"{label:<10} "
+            f"{bar} "
+            f"{pos:>7} "
+            f"{status:<{self._STATUS_WIDTH}} "
+            f"{b_str:<5} "
+            f"{pid_str:<9} "
+            f"rt:{time_str:<7} "
+            f"idle:{idle_str:<7} "
+            f"{stats_str:<17} "
+            f"{rc_str:<6} "
+        )
+
+    def _static_width(self) -> int:
+        return 11 + (self._BAR_WIDTH + 3) + 8 + (self._STATUS_WIDTH + 1) + 6 + 10 + 11 + 13 + 18 + 7
+
+    def _row_for(self, path: str, terminal_width: int) -> str:
+        """Build a full worker row as Dashboard._render would, then clip it."""
+        path_width = max(8, min(self._MAX_PATH, terminal_width - self._static_width()))
+        bar = "[" + "#" * self._BAR_WIDTH + "]"
+        prefix = self._build_prefix(
+            label="W01",
+            bar=bar,
+            pos="1/10",
+            status="running",
+            b_str="b#1",
+            pid_str="pid=12345",
+            time_str="1.5s",
+            idle_str="0.2s",
+            stats_str="ok:3 to:0 fl:0",
+            rc_str="rc=0",
+        )
+        truncated_path = bc.Dashboard.truncate_path(path, path_width)
+        row = prefix + truncated_path
+        if len(row) > terminal_width:
+            row = row[:terminal_width]
+        return row
+
+    def _root_row_for(self, path: str, terminal_width: int) -> str:
+        """Build a ROOT_FILES row as Dashboard._render would, then clip it."""
+        path_width = max(8, min(self._MAX_PATH, terminal_width - self._static_width()))
+        bar = " " * (self._BAR_WIDTH + 2)
+        prefix = self._build_prefix(
+            label="ROOT_FILES",
+            bar=bar,
+            pos="--/--",
+            status="done",
+            b_str="",
+            pid_str="",
+            time_str="",
+            idle_str="",
+            stats_str="ok:1 to:0 fl:0",
+            rc_str="rc=0",
+        )
+        truncated_path = bc.Dashboard.truncate_path(path, path_width)
+        row = prefix + truncated_path
+        if len(row) > terminal_width:
+            row = row[:terminal_width]
+        return row
+
+    def test_row_fits_80_col_terminal(self):
+        long_path = "/very/long/nested/directory/path/that/would/normally/wrap/onto/the/next/line"
+        row = self._row_for(long_path, terminal_width=80)
+        self.assertLessEqual(len(row), 80,
+            f"Row length {len(row)} exceeds 80 cols: {row!r}")
+
+    def test_row_fits_120_col_terminal(self):
+        long_path = "/very/long/nested/directory/path/that/would/normally/wrap/onto/the/next/line"
+        row = self._row_for(long_path, terminal_width=120)
+        self.assertLessEqual(len(row), 120,
+            f"Row length {len(row)} exceeds 120 cols: {row!r}")
+
+    def test_row_fits_160_col_terminal(self):
+        long_path = "/very/long/nested/directory/path/that/would/normally/wrap/onto/the/next/line"
+        row = self._row_for(long_path, terminal_width=160)
+        self.assertLessEqual(len(row), 160,
+            f"Row length {len(row)} exceeds 160 cols: {row!r}")
+
+    def test_path_column_capped_at_max_on_wide_terminal(self):
+        """On a very wide terminal (300 cols), the path column must not exceed MAX_PATH_DISPLAY."""
+        long_path = "/" + "x" * 500
+        row = self._row_for(long_path, terminal_width=300)
+        path_part = row[self._static_width():]
+        self.assertLessEqual(len(path_part), self._MAX_PATH,
+            f"Path column {len(path_part)} chars exceeds MAX_PATH_DISPLAY={self._MAX_PATH}")
+
+    def test_root_files_row_fits_80_col(self):
+        label = "chunk 1/3"
+        row = self._root_row_for(label, terminal_width=80)
+        self.assertLessEqual(len(row), 80,
+            f"ROOT_FILES row length {len(row)} exceeds 80 cols: {row!r}")
+
+    def test_root_files_row_fits_120_col(self):
+        label = "chunk 10/200 (very long description that might overflow)"
+        row = self._root_row_for(label, terminal_width=120)
+        self.assertLessEqual(len(row), 120,
+            f"ROOT_FILES row length {len(row)} exceeds 120 cols: {row!r}")
+
+    def test_short_path_not_truncated(self):
+        # On a 200-col terminal, path_width = min(MAX_PATH_DISPLAY, 200-static_width) = 60.
+        # A short path under 60 chars must pass through unchanged.
+        short_path = "/home/user"
+        path_width = max(8, min(self._MAX_PATH, 200 - self._static_width()))
+        result = bc.Dashboard.truncate_path(short_path, path_width)
+        self.assertEqual(result, short_path,
+            "Short path should not be truncated")
+
+    def test_truncated_path_has_ellipsis(self):
+        long_path = "/" + "a/b/c/" * 20
+        # Use a wide terminal (200 cols) so path_width = MAX_PATH_DISPLAY = 60;
+        # with a path of 120 chars it will definitely be truncated.
+        path_width = max(8, min(self._MAX_PATH, 200 - self._static_width()))
+        result = bc.Dashboard.truncate_path(long_path, path_width)
+        self.assertTrue(result.startswith("..."),
+            f"Truncated path should start with '...', got: {result!r}")
+
+
 if __name__ == "__main__":
     unittest.main()

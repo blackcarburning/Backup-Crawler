@@ -621,6 +621,10 @@ class WorkerStates:
 
 class Dashboard:
     _STATUS_WIDTH = 16
+    # Hard upper bound on the displayed path column width.  Prevents very
+    # wide terminals from producing an unreadably long path field and keeps
+    # every worker row within one visual line on most displays.
+    _MAX_PATH_DISPLAY = 60
 
     def __init__(
         self,
@@ -642,14 +646,27 @@ class Dashboard:
         self._rendered_lines = 0
 
     @staticmethod
-    def _truncate(value: str, max_length: int) -> str:
-        if max_length < 1:
+    def truncate_path(path: str, width: int, suffix: str = "...") -> str:
+        """Return *path* truncated to *width* printable characters.
+
+        The **end** of the path is preserved so the basename remains visible.
+        An ASCII *suffix* (default ``"..."``) is prepended when truncation
+        occurs, e.g. ``".../node_modules/parse5/lib/extensions"``.
+
+        Edge cases:
+        - Returns ``""`` when *width* is < 1.
+        - Returns the suffix clipped to *width* when *width* ≤ len(suffix).
+        - Returns the original value unchanged when it already fits.
+        """
+        if width < 1:
             return ""
-        if len(value) <= max_length:
-            return value
-        if max_length == 1:
-            return "…"
-        return value[: max_length - 1] + "…"
+        if len(path) <= width:
+            return path
+        slen = len(suffix)
+        if width <= slen:
+            return suffix[:width]
+        # Keep the tail of the path so the basename stays visible.
+        return suffix + path[-(width - slen):]
 
     @staticmethod
     def _bar(index: int, total: int, width: int) -> str:
@@ -735,13 +752,15 @@ class Dashboard:
         # status + sp = STATUS_WIDTH+1
         # b#NNN + sp = 6
         # pid=NNNNN + sp = 10
-        # rt:NNN.Ns + sp = 10
-        # idle:NNN.Ns + sp = 12
+        # rt:NNN.Ns + sp = 11  ("rt:" prefix = 3, pad width = 7, trailing space = 1)
+        # idle:NNN.Ns + sp = 13  ("idle:" prefix = 5, pad width = 7, trailing space = 1)
         # ok:NN to:NN fl:NN + sp = 18
         # rc=NNN + sp = 7
         # path (remaining)
-        static_width = 11 + (bar_width + 3) + 8 + (self._STATUS_WIDTH + 1) + 6 + 10 + 10 + 12 + 18 + 7
-        path_width = max(8, terminal_width - static_width)
+        static_width = 11 + (bar_width + 3) + 8 + (self._STATUS_WIDTH + 1) + 6 + 10 + 11 + 13 + 18 + 7
+        # Cap path width: never negative/unusably small, and never wider than
+        # _MAX_PATH_DISPLAY so very wide terminals do not produce unwieldy lines.
+        path_width = max(8, min(self._MAX_PATH_DISPLAY, terminal_width - static_width))
 
         for state in states:
             # Worker slot 0 is the ROOT_FILES special job; all others are regular workers.
@@ -808,8 +827,13 @@ class Dashboard:
                 f"{stats_str:<17} "
                 f"{rc_str:<6} "
             )
-            path = self._truncate(state.current_directory, path_width)
-            lines.append(prefix + path)
+            path = self.truncate_path(state.current_directory, path_width)
+            # Final safety clip: ensure the rendered row never exceeds the
+            # terminal width regardless of any width-calculation discrepancy.
+            row = prefix + path
+            if len(row) > terminal_width:
+                row = row[:terminal_width]
+            lines.append(row)
 
         if self._rendered_lines:
             sys.stdout.write(f"\x1b[{self._rendered_lines}F")
