@@ -118,6 +118,19 @@ SQLITE_POLICY_VERSION = "v1"
 CONTROLLER_LEASE_SECS = 15
 CONTROLLER_HEARTBEAT_SECS = 5
 
+# Advisory dsmc-output heartbeat: only flush a heartbeat write at most once per
+# this many seconds so a chatty child process cannot trigger a DB commit on
+# every chunk of output.
+HEARTBEAT_INTERVAL = 5.0
+
+# Base delay (seconds) for the first retry when the DB coordinator encounters a
+# transient SQLite lock error.  The actual delay is ``RETRY_BASE_DELAY_SECS *
+# 2**(attempt-1)``, capped at 1 second, giving a bounded backoff sequence.
+RETRY_BASE_DELAY_SECS = 0.05
+
+# Column separator for the failed-directories TSV log.
+_TSV_SEP = "\t"
+
 _UNIT_MULTIPLIERS: dict[str, int] = {
     "B": 1,
     "KB": 1024,
@@ -848,6 +861,26 @@ class WorkerStates:
             state.dir_start_time = None
             state.child_pid = None
 
+    def error(self, worker_number: int) -> None:
+        """Mark a worker as failed after an unhandled exception.
+
+        Distinct from :meth:`stopped` ("done") so the dashboard and final
+        summary can show that a worker crashed rather than finished cleanly.
+        """
+        with self._lock:
+            state = self._states[worker_number]
+            state.status = "error"
+            state.batch_index = 0
+            state.batch_total = 0
+            state.current_directory = ""
+            state.batch_start_time = None
+            state.dir_start_time = None
+            state.child_pid = None
+
+    def get_status(self, worker_number: int) -> str:
+        with self._lock:
+            return self._states[worker_number].status
+
     def set_custom_status(
         self, worker_number: int, status: str, directory: str = ""
     ) -> None:
@@ -955,11 +988,17 @@ class Dashboard:
         in_progress = max(0, discovered - completed - failed - q_size)
         scanner_label = "DONE   " if scanner_done else "RUNNING"
 
-        # Queue saturation indicator
-        queue_full = q_max > 0 and q_size >= q_max
-        q_str = f"q={q_size}/{q_max}"
-        if queue_full:
-            q_str += "[FULL]"
+        # Queue saturation indicator.  In persistent mode there is no bounded
+        # in-memory queue backlog to display (work lives in the durable DB),
+        # so the misleading ``q=N/MAX[FULL]`` form is suppressed there.
+        persistent_mode = self.state_snapshot_provider is not None
+        if persistent_mode:
+            q_str = ""
+        else:
+            queue_full = q_max > 0 and q_size >= q_max
+            q_str = f"q={q_size}/{q_max}"
+            if queue_full:
+                q_str += "[FULL]"
 
         # Percentage complete
         if scanner_done and discovered > 0:
@@ -977,9 +1016,12 @@ class Dashboard:
 
         sep = "-" * min(terminal_width, 80)
 
+        scanner_prefix = f"Scanner: {scanner_label}  found={discovered}  "
+        if q_str:
+            scanner_prefix += f"{q_str}  "
         lines = [
             (
-                f"Scanner: {scanner_label}  found={discovered}  {q_str}  "
+                f"{scanner_prefix}"
                 f"in-prog={in_progress}  excl={excluded}  "
                 f"skipped={skipped}  errors={errors}"
             ),
@@ -1017,6 +1059,15 @@ class Dashboard:
             lines.append(
                 f"Persisted: scan p/s/d/e/m={scan_counts.get('pending',0)}/{scan_counts.get('scanning',0)}/{scan_counts.get('scanned',0)}/{scan_counts.get('excluded',0)}/{scan_counts.get('skipped_mount',0)} "
                 f"backup p/r/ok/fl/to={backup_counts.get('pending',0)}/{backup_counts.get('running',0)}/{backup_counts.get('succeeded',0)}/{backup_counts.get('failed',0)}/{backup_counts.get('timed_out',0)}"
+            )
+            # Durable backlog line: reflects actual DB row counts (the real
+            # persistent work backlog), not any in-memory queue size.
+            lines.append(
+                f"Backlog: backup pending={backup_counts.get('pending',0)} "
+                f"running={backup_counts.get('running',0)}; "
+                f"scan pending={scan_counts.get('pending',0)} "
+                f"scanning={scan_counts.get('scanning',0)} "
+                f"scanned={scan_counts.get('scanned',0)}"
             )
         lines.append(sep)
 
@@ -1321,6 +1372,23 @@ class PersistentStateDB:
         conn.execute("PRAGMA journal_mode=WAL")
         conn.execute("PRAGMA busy_timeout=5000")
         conn.execute("PRAGMA synchronous=FULL")
+
+    def _get_writer_connection(self) -> sqlite3.Connection:
+        """Return a dedicated, long-lived writable connection.
+
+        Used exclusively by the :class:`DBCoordinator` single-writer thread.
+        The connection is registered as the calling thread's thread-local
+        connection so that the existing ``PersistentStateDB`` write methods,
+        when invoked from the coordinator thread, transparently reuse it.  A
+        generous ``busy_timeout`` gives the sole writer a long window to wait
+        out any external lock contention before surfacing an error.
+        """
+        conn = sqlite3.connect(self.path, timeout=30, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        self._apply_pragmas(conn)
+        conn.execute("PRAGMA busy_timeout=30000")
+        self._local.connection = conn
+        return conn
 
     def close(self) -> None:
         conn = getattr(self._local, "connection", None)
@@ -1892,6 +1960,37 @@ class PersistentStateDB:
         conn.commit()
         return paths
 
+    def claim_backup_job(
+        self,
+        run_id: str,
+        controller_id: str,
+        worker_number: int,
+    ) -> str | None:
+        """Claim exactly one pending backup directory.
+
+        Returns the claimed path, or ``None`` when no pending work remains.
+        This is the single-job replacement for :meth:`claim_backup_batch`;
+        batching is now purely an in-memory concept and no longer reserves
+        multiple durable rows per claim.
+        """
+        conn = self._connect()
+        conn.execute("BEGIN IMMEDIATE")
+        row = conn.execute(
+            "SELECT path_bytes FROM directories WHERE run_id=? AND backup_status='pending' ORDER BY discovered_at, path_display LIMIT 1",
+            (run_id,),
+        ).fetchone()
+        if row is None:
+            conn.commit()
+            return None
+        now = _utc_now()
+        path = decode_path_from_db(row['path_bytes'])
+        conn.execute(
+            "UPDATE directories SET backup_status='running', backup_owner=?, backup_worker_id=?, backup_claimed_at=?, backup_heartbeat_at=? WHERE run_id=? AND path_bytes=? AND backup_status='pending'",
+            (controller_id, worker_number, now, now, run_id, row['path_bytes']),
+        )
+        conn.commit()
+        return path
+
     def release_backup_claims(self, run_id: str, paths: list[str]) -> None:
         if not paths:
             return
@@ -2273,16 +2372,192 @@ class PersistentStateDB:
         }
 
 
+@dataclass
+class _CoordRequest:
+    op: str
+    args: tuple
+    kwargs: dict
+    result: list
+    done: threading.Event
+    error: list
+    advisory: bool = False
+
+
+class DBCoordinator:
+    """Single-writer database coordinator.
+
+    Owns one long-lived writable SQLite connection and serialises every state
+    mutation through a request queue.  All other threads (workers, scanner,
+    root-files job, heartbeat, reader callbacks) submit requests instead of
+    writing directly, which eliminates the ``database is locked`` contention
+    that arises when many threads each hold their own writer connection.
+
+    * ``submit_critical`` blocks the caller until the operation has durably
+      committed and returns its result (or re-raises its exception).
+    * ``submit_advisory`` is fire-and-forget and may be silently dropped when
+      the queue is saturated or the coordinator has died; it is used for
+      heartbeats and PID annotations that are safe to lose.
+
+    Operations are dispatched by name to matching :class:`PersistentStateDB`
+    methods.  Because the coordinator runs in its own thread and installs its
+    connection as that thread's thread-local connection, the existing
+    ``PersistentStateDB`` methods transparently reuse the single writer
+    connection when called from here.
+    """
+
+    CRITICAL_TIMEOUT_SECS = 60.0
+    QUEUE_MAXSIZE = 1000
+    MAX_LOCK_RETRIES = 12
+
+    def __init__(self, state_db: PersistentStateDB, logger: "SafeLogger | None" = None) -> None:
+        self._db = state_db
+        self._logger = logger
+        self._queue: "queue.Queue[_CoordRequest | None]" = queue.Queue(maxsize=self.QUEUE_MAXSIZE)
+        self._fatal = threading.Event()
+        self._fatal_error: BaseException | None = None
+        self._started = threading.Event()
+        self._thread = threading.Thread(name='db-coordinator', target=self._run, daemon=True)
+
+    # -- lifecycle -----------------------------------------------------------
+
+    def start(self) -> None:
+        self._thread.start()
+        # Wait until the writer connection is established (or startup failed).
+        self._started.wait(timeout=10)
+
+    def shutdown(self) -> None:
+        try:
+            self._queue.put(None, timeout=5)
+        except queue.Full:
+            pass
+        self._thread.join(timeout=10)
+
+    def is_alive(self) -> bool:
+        return self._thread.is_alive()
+
+    def is_fatal(self) -> bool:
+        return self._fatal.is_set()
+
+    @property
+    def fatal_error(self) -> BaseException | None:
+        return self._fatal_error
+
+    def _check_fatal(self) -> None:
+        if self._fatal.is_set():
+            raise RuntimeError(f"DB coordinator is dead: {self._fatal_error}")
+
+    # -- submission ----------------------------------------------------------
+
+    def submit_critical(self, op: str, *args, timeout: float | None = None, **kwargs):
+        """Submit a critical operation and block until it durably commits."""
+        self._check_fatal()
+        if timeout is None:
+            timeout = self.CRITICAL_TIMEOUT_SECS
+        req = _CoordRequest(
+            op=op, args=args, kwargs=kwargs,
+            result=[None], done=threading.Event(), error=[None], advisory=False,
+        )
+        self._queue.put(req)
+        if not req.done.wait(timeout=timeout):
+            raise TimeoutError(f"DB coordinator critical op '{op}' timed out after {timeout}s")
+        if req.error[0] is not None:
+            raise req.error[0]
+        return req.result[0]
+
+    def submit_advisory(self, op: str, *args, **kwargs) -> None:
+        """Submit an advisory write - fire and forget, may be dropped."""
+        if self._fatal.is_set():
+            return
+        req = _CoordRequest(
+            op=op, args=args, kwargs=kwargs,
+            result=[None], done=threading.Event(), error=[None], advisory=True,
+        )
+        try:
+            self._queue.put_nowait(req)
+        except queue.Full:
+            # Dropping an advisory write (e.g. a heartbeat) under backlog is safe.
+            pass
+
+    # -- coordinator thread --------------------------------------------------
+
+    def _run(self) -> None:
+        conn: sqlite3.Connection | None = None
+        try:
+            conn = self._db._get_writer_connection()
+            self._started.set()
+            while True:
+                try:
+                    req = self._queue.get(timeout=0.5)
+                except queue.Empty:
+                    continue
+                if req is None:  # poison pill / shutdown signal
+                    break
+                self._dispatch(req)
+        except Exception as exc:  # record any startup/loop failure without swallowing signals
+            self._fatal_error = exc
+            self._fatal.set()
+            self._started.set()
+            if self._logger is not None:
+                import traceback
+                self._logger.write(f"DB coordinator FATAL: {traceback.format_exc()}")
+        finally:
+            if conn is not None:
+                try:
+                    conn.close()
+                except Exception:
+                    pass
+
+    def _dispatch(self, req: _CoordRequest) -> None:
+        try:
+            req.result[0] = self._invoke(req)
+        except Exception as exc:  # surfaced to caller or logged
+            req.error[0] = exc
+            if req.advisory and self._logger is not None:
+                self._logger.write(f"DB coordinator advisory op '{req.op}' failed: {exc}")
+        finally:
+            req.done.set()
+
+    def _invoke(self, req: _CoordRequest):
+        method = getattr(self._db, req.op, None)
+        if method is None or not callable(method):
+            raise AttributeError(f"Unknown coordinator op: {req.op}")
+        attempt = 0
+        while True:
+            try:
+                return method(*req.args, **req.kwargs)
+            except sqlite3.OperationalError as exc:
+                message = str(exc).lower()
+                if 'lock' not in message and 'busy' not in message:
+                    raise
+                # Roll back any partially-open transaction before retrying so
+                # the next BEGIN IMMEDIATE starts cleanly.
+                try:
+                    self._db._connect().rollback()
+                except Exception:
+                    pass
+                attempt += 1
+                if attempt > self.MAX_LOCK_RETRIES:
+                    raise
+                time.sleep(min(RETRY_BASE_DELAY_SECS * (2 ** (attempt - 1)), 1.0))
+
+
 class ControllerHeartbeat(threading.Thread):
-    def __init__(self, state_db: PersistentStateDB, run_ctx: RunContext, stop_event: threading.Event) -> None:
+    def __init__(self, coordinator: "DBCoordinator", run_ctx: RunContext, stop_event: threading.Event) -> None:
         super().__init__(name="controller-heartbeat", daemon=True)
-        self._state_db = state_db
+        self._coordinator = coordinator
         self._run_ctx = run_ctx
         self._stop_event = stop_event
 
     def run(self) -> None:
         while not self._stop_event.wait(CONTROLLER_HEARTBEAT_SECS):
-            self._state_db.heartbeat_controller(self._run_ctx.run_id, self._run_ctx.controller_id)
+            try:
+                self._coordinator.submit_critical(
+                    'heartbeat_controller', self._run_ctx.run_id, self._run_ctx.controller_id, timeout=15
+                )
+            except Exception:
+                # A failed heartbeat is non-fatal; the controller lease will
+                # simply be refreshed on the next tick (or the run ends).
+                pass
 
 
 def _restore_counters_from_snapshot(counters: Counters, snapshot: dict[str, int]) -> None:
@@ -2327,25 +2602,35 @@ def classify_return_code(return_code: int, stop_event: threading.Event) -> str:
 
 
 def make_directory_dsmc_callbacks(
-    state_db: PersistentStateDB,
+    coordinator: "DBCoordinator",
     run_ctx: RunContext,
     current_path: str,
 ):
-    def _on_child_started(pid: int, _start: float) -> None:
-        state_db.set_directory_child_pid(run_ctx.run_id, current_path, pid, _utc_now())
+    last_heartbeat = [0.0]  # mutable holder for last emitted heartbeat time
 
-    def _on_child_output(_ts: float) -> None:
-        state_db.touch_directory_attempt(run_ctx.run_id, current_path)
+    def _on_child_started(pid: int, _start: float) -> None:
+        coordinator.submit_advisory('set_directory_child_pid', run_ctx.run_id, current_path, pid, _utc_now())
+
+    def _on_child_output(ts: float) -> None:
+        # Rate-limit: emit at most one advisory heartbeat per HEARTBEAT_INTERVAL
+        # so a chatty child cannot trigger a DB commit on every chunk of output.
+        if ts - last_heartbeat[0] >= HEARTBEAT_INTERVAL:
+            last_heartbeat[0] = ts
+            coordinator.submit_advisory('touch_directory_attempt', run_ctx.run_id, current_path)
 
     return _on_child_started, _on_child_output
 
 
-def make_root_chunk_dsmc_callbacks(state_db: PersistentStateDB, chunk_id: int):
-    def _on_root_child_started(pid: int, _start: float) -> None:
-        state_db.set_root_chunk_pid(chunk_id, pid)
+def make_root_chunk_dsmc_callbacks(coordinator: "DBCoordinator", chunk_id: int):
+    last_heartbeat = [0.0]
 
-    def _on_root_child_output(_ts: float) -> None:
-        state_db.touch_root_chunk(chunk_id)
+    def _on_root_child_started(pid: int, _start: float) -> None:
+        coordinator.submit_advisory('set_root_chunk_pid', chunk_id, pid)
+
+    def _on_root_child_output(ts: float) -> None:
+        if ts - last_heartbeat[0] >= HEARTBEAT_INTERVAL:
+            last_heartbeat[0] = ts
+            coordinator.submit_advisory('touch_root_chunk', chunk_id)
 
     return _on_root_child_started, _on_root_child_output
 
@@ -2897,6 +3182,7 @@ def run_dsmc_supervised(
         child_started_callback(proc.pid, start_time)
 
     reader_done = threading.Event()
+    callback_failure_logged = [False]
 
     def _reader() -> None:
         buf = b""
@@ -2910,7 +3196,18 @@ def run_dsmc_supervised(
                 last_output_ts[0] = now
                 worker_states.update_child_output_time(worker_number, now)
                 if child_output_callback is not None:
-                    child_output_callback(now)
+                    try:
+                        child_output_callback(now)
+                    except Exception as cb_exc:
+                        # Advisory callback failures (e.g. a dead DB coordinator)
+                        # must never crash the reader or block draining output.
+                        # Log once so the failure is observable without spamming.
+                        if not callback_failure_logged[0]:
+                            callback_failure_logged[0] = True
+                            logger.write(
+                                f"{worker_name}: output callback failed "
+                                f"(suppressed, non-fatal): {cb_exc}"
+                            )
                 output_file.write(chunk)
                 buf += chunk
                 while b"\n" in buf:
@@ -3143,6 +3440,7 @@ def worker(
 def persistent_scan_directories(
     root: str,
     state_db: PersistentStateDB,
+    coordinator: "DBCoordinator",
     run_ctx: RunContext,
     producer_done: threading.Event,
     stop_event: threading.Event,
@@ -3161,7 +3459,7 @@ def persistent_scan_directories(
     mount_boundaries = nested_mounts(root)
     try:
         while not stop_event.is_set():
-            current = state_db.claim_next_scan(run_ctx.run_id, run_ctx.controller_id)
+            current = coordinator.submit_critical('claim_next_scan', run_ctx.run_id, run_ctx.controller_id)
             if current is None:
                 producer_done.set()
                 return
@@ -3201,9 +3499,10 @@ def persistent_scan_directories(
                 parent_error = str(exc)
                 logger.write(f"SCAN ERROR: {current!r}: {exc}")
             if parent_error == "scan interrupted":
-                state_db.release_scan_claim(run_ctx.run_id, current)
+                coordinator.submit_critical('release_scan_claim', run_ctx.run_id, current)
                 continue
-            inserted = state_db.finish_scan(
+            inserted = coordinator.submit_critical(
+                'finish_scan',
                 run_ctx.run_id,
                 current,
                 eligible_children,
@@ -3227,10 +3526,15 @@ def persistent_scan_directories(
 
 
 
+class _WorkerStopRequested(Exception):
+    """Internal control-flow signal: stop was requested before an attempt began."""
+
+
 def persistent_worker(
     worker_number: int,
     args: argparse.Namespace,
     state_db: PersistentStateDB,
+    coordinator: "DBCoordinator",
     run_ctx: RunContext,
     producer_done: threading.Event,
     stop_event: threading.Event,
@@ -3250,136 +3554,151 @@ def persistent_worker(
     try:
         while True:
             if stop_event.is_set():
-                worker_states.stopped(worker_number)
                 return
             worker_states.waiting(worker_number)
-            batch = state_db.claim_backup_batch(
+            # Claim exactly one job at a time.  Batching is now purely an
+            # in-memory concept; each durable claim reserves a single row.
+            path = coordinator.submit_critical(
+                'claim_backup_job',
                 run_ctx.run_id,
                 run_ctx.controller_id,
                 worker_number,
-                args.batch_size,
             )
-            if not batch:
+            if path is None:
                 if producer_done.is_set() and state_db.pending_backup_count(run_ctx.run_id) == 0:
-                    worker_states.stopped(worker_number)
                     return
                 time.sleep(0.2)
                 continue
 
-            worker_states.start_batch(worker_number, len(batch))
+            worker_states.start_batch(worker_number, 1)
             logger.write(
-                f"{worker_name}: reserved {len(batch)} "
-                f"{'directory' if len(batch) == 1 else 'directories'} "
-                f"(batch #{worker_states.get_batch_id(worker_number)})"
+                f"{worker_name}: reserved 1 directory "
+                f"(job #{worker_states.get_batch_id(worker_number)})"
             )
-            unstarted = list(batch)
+            started = False
             try:
                 with worker_log.open("ab", buffering=0) as output:
+                    operand = dsm_directory_operand(path)
                     output.write(
                         (
                             f"\n===== {time.strftime('%Y-%m-%d %H:%M:%S')} =====\n"
-                            f"Batch size: {len(batch)}\n"
-                            + "\n".join(dsm_directory_operand(p) for p in batch)
-                            + "\n"
+                            f"Directory: {operand}\n"
                         ).encode("utf-8", errors="backslashreplace")
                     )
-                    for index, path in enumerate(batch, start=1):
-                        if stop_event.is_set():
-                            break
-                        unstarted.pop(0)
-                        worker_states.set_directory(worker_number, index, path)
-                        operand = dsm_directory_operand(path)
-                        command = [
-                            args.dsmc,
-                            "incremental",
-                            "-subdir=no",
-                            f"-resourceutilization={args.resourceutilization}",
-                            *args.dsmc_option,
-                            operand,
-                        ]
-                        output.write(
-                            (
-                                f"\n--- {time.strftime('%Y-%m-%d %H:%M:%S')} ---\n"
-                                f"Directory {index}/{len(batch)}: {operand}\n"
-                            ).encode("utf-8", errors="backslashreplace")
-                        )
-                        attempt_id = state_db.start_directory_attempt(
-                            run_ctx.run_id,
-                            run_ctx.execution_id,
-                            path,
-                            worker_number,
-                            worker_name,
-                        )
-                        return_code = 0
-                        inv_stats = DsmcInvocationStats()
-                        child_started_callback, child_output_callback = make_directory_dsmc_callbacks(
-                            state_db,
-                            run_ctx,
-                            path,
-                        )
+                    if stop_event.is_set():
+                        # Claimed but never started: released in the finally below.
+                        raise _WorkerStopRequested()
+                    worker_states.set_directory(worker_number, 1, path)
+                    command = [
+                        args.dsmc,
+                        "incremental",
+                        "-subdir=no",
+                        f"-resourceutilization={args.resourceutilization}",
+                        *args.dsmc_option,
+                        operand,
+                    ]
+                    attempt_id = coordinator.submit_critical(
+                        'start_directory_attempt',
+                        run_ctx.run_id,
+                        run_ctx.execution_id,
+                        path,
+                        worker_number,
+                        worker_name,
+                    )
+                    started = True
+                    return_code = 0
+                    inv_stats = DsmcInvocationStats()
+                    child_started_callback, child_output_callback = make_directory_dsmc_callbacks(
+                        coordinator,
+                        run_ctx,
+                        path,
+                    )
 
-                        try:
-                            return_code, inv_stats = run_dsmc_supervised(
-                                command=command,
-                                env=environment,
-                                output_file=output,
-                                worker_number=worker_number,
-                                worker_states=worker_states,
-                                global_stats=global_stats,
-                                logger=logger,
-                                worker_name=worker_name,
-                                dsmc_timeout=args.dsmc_timeout,
-                                dsmc_idle_timeout=args.dsmc_idle_timeout,
-                                stop_event=stop_event,
-                                child_started_callback=child_started_callback,
-                                child_output_callback=child_output_callback,
-                            )
-                            global_stats.add_invocation(inv_stats)
-                        except OSError as exc:
-                            return_code = 127
-                            logger.write(f"{worker_name}: OS error running dsmc: {exc}")
-                        outcome = classify_return_code(return_code, stop_event)
-                        error_text = None
-                        if outcome == "interrupted":
-                            error_text = "interrupted by stop request"
-                        elif outcome == "timed_out":
-                            error_text = "timeout"
-                        state_db.finish_directory_attempt(
-                            run_ctx.run_id,
-                            path,
-                            attempt_id,
-                            outcome,
-                            return_code,
-                            inv_stats,
-                            error_text=error_text,
+                    try:
+                        return_code, inv_stats = run_dsmc_supervised(
+                            command=command,
+                            env=environment,
+                            output_file=output,
+                            worker_number=worker_number,
+                            worker_states=worker_states,
+                            global_stats=global_stats,
+                            logger=logger,
+                            worker_name=worker_name,
+                            dsmc_timeout=args.dsmc_timeout,
+                            dsmc_idle_timeout=args.dsmc_idle_timeout,
+                            stop_event=stop_event,
+                            child_started_callback=child_started_callback,
+                            child_output_callback=child_output_callback,
                         )
-                        worker_states.set_result(worker_number, return_code, inv_stats)
-                        if outcome == "succeeded":
-                            counters.add("completed")
-                            logger.write(
-                                f"{worker_name}: completed {index}/{len(batch)} rc={return_code} path={path}"
-                            )
-                        elif outcome == "timed_out":
-                            counters.add("failed")
-                            logger.write(
-                                f"{worker_name}: TIMEOUT {index}/{len(batch)} rc={return_code} path={path}"
-                            )
-                            failed_logger.write(f"{return_code}	{path}	# timeout")
-                        elif outcome == "interrupted":
-                            logger.write(
-                                f"{worker_name}: interrupted {index}/{len(batch)} rc={return_code} path={path}"
-                            )
-                        else:
-                            counters.add("failed")
-                            logger.write(
-                                f"{worker_name}: FAILED {index}/{len(batch)} rc={return_code} path={path}"
-                            )
-                            failed_logger.write(f"{return_code}	{path}")
+                        global_stats.add_invocation(inv_stats)
+                    except OSError as exc:
+                        return_code = 127
+                        logger.write(f"{worker_name}: OS error running dsmc: {exc}")
+                    outcome = classify_return_code(return_code, stop_event)
+                    error_text = None
+                    if outcome == "interrupted":
+                        error_text = "interrupted by stop request"
+                    elif outcome == "timed_out":
+                        error_text = "timeout"
+                    coordinator.submit_critical(
+                        'finish_directory_attempt',
+                        run_ctx.run_id,
+                        path,
+                        attempt_id,
+                        outcome,
+                        return_code,
+                        inv_stats,
+                        error_text=error_text,
+                    )
+                    worker_states.set_result(worker_number, return_code, inv_stats)
+                    if outcome == "succeeded":
+                        counters.add("completed")
+                        logger.write(
+                            f"{worker_name}: completed rc={return_code} path={path}"
+                        )
+                    elif outcome == "timed_out":
+                        counters.add("failed")
+                        logger.write(
+                            f"{worker_name}: TIMEOUT rc={return_code} path={path}"
+                        )
+                        failed_logger.write(f"{return_code}{_TSV_SEP}{path}{_TSV_SEP}# timeout")
+                    elif outcome == "interrupted":
+                        logger.write(
+                            f"{worker_name}: interrupted rc={return_code} path={path}"
+                        )
+                    else:
+                        counters.add("failed")
+                        logger.write(
+                            f"{worker_name}: FAILED rc={return_code} path={path}"
+                        )
+                        failed_logger.write(f"{return_code}{_TSV_SEP}{path}")
+            except _WorkerStopRequested:
+                # Stop was requested after the job was claimed but before its
+                # attempt began; the finally-block below releases the claim.
+                logger.write(f"{worker_name}: stop requested before attempt started for path={path}")
             finally:
-                state_db.release_backup_claims(run_ctx.run_id, unstarted)
+                if not started:
+                    # The job was claimed but its attempt never began; return it
+                    # to the pending pool so it stays recoverable.
+                    try:
+                        coordinator.submit_critical(
+                            'release_backup_claims', run_ctx.run_id, [path]
+                        )
+                    except Exception:
+                        pass
                 worker_states.idle(worker_number)
+    except Exception:
+        import traceback
+        logger.write(f"{worker_name}: FATAL EXCEPTION\n{traceback.format_exc()}")
+        worker_states.error(worker_number)
+        # Trigger an orderly shutdown of the rest of the run.
+        stop_event.set()
+        raise
     finally:
-        worker_states.stopped(worker_number)
+        # Only mark "done" if we did not already record an error state, so a
+        # crashed worker is not misreported as having completed cleanly.
+        if worker_states.get_status(worker_number) != "error":
+            worker_states.stopped(worker_number)
 
 
 
@@ -3388,6 +3707,7 @@ def persistent_run_root_files_job(
     root: str,
     excluded_paths: frozenset[str],
     state_db: PersistentStateDB,
+    coordinator: "DBCoordinator",
     run_ctx: RunContext,
     worker_states: WorkerStates,
     global_stats: GlobalDsmcStats,
@@ -3406,13 +3726,13 @@ def persistent_run_root_files_job(
         manifest = state_db.root_manifest_row(run_ctx.run_id)
         if manifest is not None and manifest["manifest_status"] == "pending":
             worker_states.set_custom_status(WORKER_SLOT, "scanning", f"scanning {root}")
-            if state_db.claim_root_manifest(run_ctx.run_id):
+            if coordinator.submit_critical('claim_root_manifest', run_ctx.run_id):
                 files = collect_root_files(root, excluded_paths)
                 logger.write(
                     f"{JOB_NAME}: found {len(files)} eligible non-directory "
                     f"{'entry' if len(files) == 1 else 'entries'} under {root!r}"
                 )
-                state_db.store_root_manifest(run_ctx.run_id, files)
+                coordinator.submit_critical('store_root_manifest', run_ctx.run_id, files)
                 manifest = state_db.root_manifest_row(run_ctx.run_id)
         if manifest is None:
             worker_states.stopped(WORKER_SLOT)
@@ -3437,7 +3757,7 @@ def persistent_run_root_files_job(
                 ).encode("utf-8", errors="backslashreplace")
             )
             while not stop_event.is_set():
-                chunk = state_db.claim_root_chunk(run_ctx.run_id, run_ctx.controller_id)
+                chunk = coordinator.submit_critical('claim_root_chunk', run_ctx.run_id, run_ctx.controller_id)
                 if chunk is None:
                     break
                 chunk_idx = int(chunk["chunk_index"])
@@ -3457,7 +3777,8 @@ def persistent_run_root_files_job(
                         f"{JOB_NAME} {label}: {len(chunk_files)} file(s)\n"
                     ).encode("utf-8", errors="backslashreplace")
                 )
-                attempt_id = state_db.start_root_chunk_attempt(
+                attempt_id = coordinator.submit_critical(
+                    'start_root_chunk_attempt',
                     run_ctx.run_id,
                     run_ctx.execution_id,
                     int(chunk["id"]),
@@ -3467,7 +3788,7 @@ def persistent_run_root_files_job(
                 return_code = 0
                 inv_stats = DsmcInvocationStats()
                 child_started_callback, child_output_callback = make_root_chunk_dsmc_callbacks(
-                    state_db,
+                    coordinator,
                     int(chunk["id"]),
                 )
 
@@ -3492,7 +3813,8 @@ def persistent_run_root_files_job(
                     return_code = 127
                     logger.write(f"{JOB_NAME}: OS error running dsmc: {exc}")
                 outcome = classify_return_code(return_code, stop_event)
-                state_db.finish_root_chunk_attempt(
+                coordinator.submit_critical(
+                    'finish_root_chunk_attempt',
                     run_ctx.run_id,
                     int(chunk["id"]),
                     attempt_id,
@@ -4140,6 +4462,7 @@ def run_persistent_main(args: argparse.Namespace) -> int:
     coverage_config = build_coverage_config(root, root_device, excluded_paths, args)
     operational_config = build_operational_config(args)
     state_db_exists = os.path.exists(args.state_db)
+    coordinator: DBCoordinator | None = None
     try:
         if args.new_run and state_db_exists:
             archived = state_db.archive_existing()
@@ -4174,7 +4497,8 @@ def run_persistent_main(args: argparse.Namespace) -> int:
         producer_done = threading.Event()
         stop_event = threading.Event()
         metrics_queue = PersistentQueueMetrics(state_db, run_ctx.run_id, args.queue_size)
-        heartbeat = ControllerHeartbeat(state_db, run_ctx, stop_event)
+        coordinator = DBCoordinator(state_db, logger=logger)
+        heartbeat = ControllerHeartbeat(coordinator, run_ctx, stop_event)
 
         logger.write(
             f"START root={root} streams={args.streams} batch_size={args.batch_size} "
@@ -4207,14 +4531,14 @@ def run_persistent_main(args: argparse.Namespace) -> int:
         producer = threading.Thread(
             name='directory-scanner',
             target=persistent_scan_directories,
-            args=(root, state_db, run_ctx, producer_done, stop_event, counters, excluded_paths, logger),
+            args=(root, state_db, coordinator, run_ctx, producer_done, stop_event, counters, excluded_paths, logger),
             daemon=True,
         )
         workers = [
             threading.Thread(
                 name=f'worker-{number:02d}',
                 target=persistent_worker,
-                args=(number, args, state_db, run_ctx, producer_done, stop_event, counters, worker_states, global_stats, logger, failed_logger),
+                args=(number, args, state_db, coordinator, run_ctx, producer_done, stop_event, counters, worker_states, global_stats, logger, failed_logger),
                 daemon=True,
             )
             for number in range(1, args.streams + 1)
@@ -4224,7 +4548,7 @@ def run_persistent_main(args: argparse.Namespace) -> int:
             root_files_thread = threading.Thread(
                 name='root-files-job',
                 target=persistent_run_root_files_job,
-                args=(args, root, excluded_paths, state_db, run_ctx, worker_states, global_stats, logger, failed_logger, stop_event),
+                args=(args, root, excluded_paths, state_db, coordinator, run_ctx, worker_states, global_stats, logger, failed_logger, stop_event),
                 daemon=False,
             )
         state_snapshot_provider = lambda: state_db.dashboard_snapshot(run_ctx)
@@ -4249,7 +4573,16 @@ def run_persistent_main(args: argparse.Namespace) -> int:
                 daemon=True,
             )
 
+        coordinator.start()
         heartbeat.start()
+
+        def _durable(op: str, *a, **k):
+            """Route a critical write through the coordinator, falling back to a
+            direct call only if the coordinator is no longer available."""
+            if coordinator.is_alive() and not coordinator.is_fatal():
+                return coordinator.submit_critical(op, *a, **k)
+            return getattr(state_db, op)(*a, **k)
+
         try:
             for thread in workers:
                 thread.start()
@@ -4272,10 +4605,10 @@ def run_persistent_main(args: argparse.Namespace) -> int:
                     logger.write(
                         f"WARNING: {thread.name} did not exit within {args.shutdown_wait_seconds}s after interrupt"
                     )
-            state_db.mark_run_state(run_ctx.run_id, 'interrupted')
+            _durable('mark_run_state', run_ctx.run_id, 'interrupted')
             resume_cmd = build_resume_command(args, root)
             print(f"Interrupted. Resume with: {resume_cmd}", flush=True)
-            state_db.clear_controller(run_ctx.run_id, run_ctx.controller_id, 'interrupted')
+            _durable('clear_controller', run_ctx.run_id, run_ctx.controller_id, 'interrupted')
             return 130
         finally:
             stop_event.set()
@@ -4301,7 +4634,7 @@ def run_persistent_main(args: argparse.Namespace) -> int:
             final_state = 'completed' if counts_snapshot['failed'] == 0 and counts_snapshot['scan_errors'] == 0 else 'completed_with_errors'
         else:
             final_state = 'interrupted'
-        state_db.clear_controller(run_ctx.run_id, run_ctx.controller_id, final_state)
+        _durable('clear_controller', run_ctx.run_id, run_ctx.controller_id, final_state)
         summary = format_final_summary(
             root=root,
             streams=args.streams,
@@ -4336,6 +4669,8 @@ def run_persistent_main(args: argparse.Namespace) -> int:
         logger.write_raw(summary + '\n')
         return 0 if final_state == 'completed' else 1
     finally:
+        if coordinator is not None:
+            coordinator.shutdown()
         state_db.close()
 
 
