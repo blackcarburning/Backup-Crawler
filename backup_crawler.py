@@ -304,6 +304,178 @@ def format_rate(bps: float) -> str:
     return format_bytes(bps) + "/s"
 
 
+def _format_elapsed(secs: float) -> str:
+    """Format an elapsed duration in seconds as HH:MM:SS."""
+    total = int(secs)
+    h = total // 3600
+    m = (total % 3600) // 60
+    s = total % 60
+    return f"{h:02d}:{m:02d}:{s:02d}"
+
+
+def format_final_summary(
+    root: str,
+    streams: int,
+    elapsed_secs: float,
+    discovered: int,
+    completed: int,
+    failed: int,
+    skipped: int,
+    excluded: int,
+    errors: int,
+    gs: dict,
+    is_root_crawl: bool,
+    root_state: "WorkerState | None",
+    scanner_done: bool,
+) -> str:
+    """Build and return the comprehensive end-of-run summary string.
+
+    All values are taken from the existing in-memory counters and the
+    GlobalDsmcStats snapshot.  No counters are altered by this function.
+
+    Parameters
+    ----------
+    root:
+        Crawl entry point (normalised path).
+    streams:
+        Configured worker count (--streams).
+    elapsed_secs:
+        Wall-clock run duration in seconds.
+    discovered / completed / failed / skipped / excluded / errors:
+        Final values from Counters.snapshot().
+    gs:
+        Snapshot dict from GlobalDsmcStats.snapshot().
+    is_root_crawl:
+        True when the crawl entry point is /.
+    root_state:
+        WorkerState for the ROOT_FILES slot (slot 0), or None.
+    scanner_done:
+        Whether the directory scanner finished normally.
+    """
+    _SEP = "=" * 80
+
+    lines: list[str] = [_SEP, "FINAL BACKUP SUMMARY", _SEP]
+
+    # --- Run status ---
+    if failed == 0 and errors == 0:
+        outcome = "SUCCESS"
+    else:
+        parts = []
+        if failed > 0:
+            parts.append(f"{failed:,} directory job(s) failed")
+        if errors > 0:
+            parts.append(f"{errors:,} scan error(s)")
+        outcome = "COMPLETED WITH FAILURES  (" + "; ".join(parts) + ")"
+
+    scanner_state = "DONE" if scanner_done else "DID NOT FINISH"
+
+    lines += [
+        f"Outcome:  {outcome}",
+        f"Root:     {root}",
+        f"Workers:  {streams}",
+        f"Elapsed:  {_format_elapsed(elapsed_secs)}",
+        f"Scanner:  {scanner_state}",
+        "",
+    ]
+
+    # --- Directory / folder accounting ---
+    lines.append("Directories (crawler accounting):")
+    _W = 38  # label column width
+    lines += [
+        f"  {'Discovered:':<{_W}} {discovered:>15,}",
+        f"  {'Completed successfully:':<{_W}} {completed:>15,}",
+        f"  {'Failed:':<{_W}} {failed:>15,}",
+        f"  {'Excluded (config / log-dir):':<{_W}} {excluded:>15,}",
+        f"  {'Skipped (nested mounts):':<{_W}} {skipped:>15,}",
+        f"  {'Scanner errors:':<{_W}} {errors:>15,}",
+    ]
+
+    # Queue / in-progress at shutdown are expected to be zero on clean completion;
+    # we don't have direct access here (they are runtime state), but their absence
+    # from the reconciliation accounts for any non-zero residual.
+    accounted = completed + failed
+    if accounted == discovered:
+        recon = f"OK  ({discovered:,} = {completed:,} + {failed:,})"
+    else:
+        unaccounted = discovered - accounted
+        recon = (
+            f"MISMATCH  {discovered:,} discovered, "
+            f"{accounted:,} accounted, "
+            f"{abs(unaccounted):,} unaccounted"
+        )
+    lines.append(f"  {'Reconciliation:':<{_W}} {recon}")
+    lines.append("")
+
+    # --- dsmc invocation accounting ---
+    lines.append("dsmc invocation accounting:")
+    lines += [
+        f"  {'Total invocations completed:':<{_W}} {gs['dsmc_done']:>15,}",
+        f"  {'Summaries parsed:':<{_W}} {gs['summaries_parsed']:>15,}",
+        f"  {'Incomplete / missing summaries:':<{_W}} {gs['incomplete_summaries']:>15,}",
+        f"  {'Active children at shutdown:':<{_W}} {gs['active_children']:>15,}",
+        "",
+    ]
+
+    # --- Backed-up object / file totals ---
+    lines.append("Objects reported by dsmc (from parsed summaries):")
+    lines += [
+        f"  {'Inspected:':<{_W}} {gs['objects_inspected']:>15,}",
+        f"  {'Backed up:':<{_W}} {gs['objects_backed_up']:>15,}",
+        f"  {'Updated:':<{_W}} {gs['objects_updated']:>15,}",
+        f"  {'Failed:':<{_W}} {gs['objects_failed']:>15,}",
+        f"  {'Retries:':<{_W}} {gs['retries']:>15,}",
+    ]
+    # Report additional object fields only when non-zero to keep output tidy.
+    for label, key in (
+        ("Rebound:", "objects_rebound"),
+        ("Deleted:", "objects_deleted"),
+        ("Expired:", "objects_expired"),
+        ("Encrypted:", "objects_encrypted"),
+        ("Grew:", "objects_grew"),
+    ):
+        val = gs.get(key, 0)
+        if val:
+            lines.append(f"  {label:<{_W}} {val:>15,}")
+    lines.append("")
+
+    # --- Data totals ---
+    lines.append("Data reported by dsmc (from parsed summaries):")
+    bi = gs["bytes_inspected"]
+    bt = gs["bytes_transferred"]
+    lines += [
+        f"  Processed:  {bi:>20,} bytes  ({format_bytes(bi)})",
+        f"  Sent:       {bt:>20,} bytes  ({format_bytes(bt)})",
+    ]
+    total_elapsed_dsmc = gs["total_elapsed_secs"]
+    if total_elapsed_dsmc > 0 and bt > 0:
+        rate = bt / total_elapsed_dsmc
+        lines.append(f"  Effective rate:  {format_rate(rate)}")
+    lines.append("")
+
+    # --- ROOT_FILES accounting (only when crawl root is /) ---
+    if is_root_crawl:
+        lines.append("ROOT_FILES job (non-directory entries directly under /):")
+        if root_state is not None:
+            rf_status = root_state.status
+            rf_ok = root_state.dirs_completed
+            rf_fail = root_state.dirs_failed
+            rf_timeout = root_state.dirs_timed_out
+            rf_total = root_state.batch_total
+            lines += [
+                f"  {'Status:':<{_W}} {rf_status}",
+                f"  {'Chunks completed:':<{_W}} {rf_ok:>15,}",
+                f"  {'Chunks failed:':<{_W}} {rf_fail:>15,}",
+                f"  {'Chunks timed out:':<{_W}} {rf_timeout:>15,}",
+                f"  {'Total chunks:':<{_W}} {rf_total:>15,}",
+            ]
+        else:
+            lines.append("  (no ROOT_FILES state recorded)")
+        lines.append("")
+
+    lines.append(_SEP)
+    return "\n".join(lines)
+
+
 # ---------------------------------------------------------------------------
 # Global aggregated dsmc statistics (thread-safe)
 # ---------------------------------------------------------------------------
@@ -885,6 +1057,19 @@ class SafeLogger:
                 fh.write(line)
         if self.echo:
             print(line, end="", flush=True)
+
+    def write_raw(self, text: str) -> None:
+        """Append *text* verbatim to the log file without any timestamp prefix.
+
+        Used for pre-formatted multi-line blocks (e.g. the final summary) where
+        per-line timestamps would break the human-readable layout.  Does not echo
+        to stdout; callers are responsible for printing to stdout if desired.
+        """
+        with self.lock:
+            with self.path.open("a", encoding="utf-8", errors="backslashreplace") as fh:
+                fh.write(text)
+                if not text.endswith("\n"):
+                    fh.write("\n")
 
 
 class SafeAppender:
@@ -1860,6 +2045,7 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> int:
     args = parse_args()
+    start_time = time.monotonic()
     root = os.path.normpath(os.path.realpath(args.mountpoint))
     args.mountpoint = root
     args.log_dir = os.path.abspath(args.log_dir)
@@ -2116,6 +2302,7 @@ def main() -> int:
         )
 
     # Root-files job summary (only when crawl root is /)
+    root_state: WorkerState | None = None
     if is_root_crawl:
         all_states = worker_states.snapshot()
         root_state = next((s for s in all_states if s.worker_number == 0), None)
@@ -2131,17 +2318,29 @@ def main() -> int:
                 f"chunks_timed_out={rf_timeout} total_chunks={rf_total}"
             )
 
-    if not dashboard_enabled:
-        print(
-            f"DONE discovered={discovered} completed={completed} failed={failed} "
-            f"skipped_mounts={skipped} excluded={excluded} scan_errors={errors} "
-            f"dsmc_done={gs['dsmc_done']} parsed={gs['summaries_parsed']} "
-            f"incomplete={gs['incomplete_summaries']} "
-            f"objects_backed_up={gs['objects_backed_up']:,} "
-            f"bytes_inspected={gs['bytes_inspected']} ({format_bytes(gs['bytes_inspected'])}) "
-            f"bytes_transferred={gs['bytes_transferred']} ({format_bytes(gs['bytes_transferred'])})",
-            flush=True,
-        )
+    # ---- Human-readable final summary (stdout + controller log) ----
+    elapsed_secs = time.monotonic() - start_time
+    summary = format_final_summary(
+        root=root,
+        streams=args.streams,
+        elapsed_secs=elapsed_secs,
+        discovered=discovered,
+        completed=completed,
+        failed=failed,
+        skipped=skipped,
+        excluded=excluded,
+        errors=errors,
+        gs=gs,
+        is_root_crawl=is_root_crawl,
+        root_state=root_state,
+        scanner_done=producer_done.is_set(),
+    )
+    # Print to stdout always (dashboard mode or not); dashboard.finish() has already
+    # run inside the finally block above, so no subsequent redraw can overwrite this.
+    print(summary, flush=True)
+    # Write verbatim to the controller log (no per-line timestamp so the block
+    # remains human-readable when tailing the log file).
+    logger.write_raw(summary + "\n")
 
     return 0 if failed == 0 and errors == 0 else 1
 
