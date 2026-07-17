@@ -180,23 +180,325 @@ class TestParseDsmcSummaryLine(unittest.TestCase):
 
 
 class TestFormatBytes(unittest.TestCase):
+    """format_bytes uses IEC units (1024-based, KiB/MiB/GiB/TiB/PiB labels)."""
+
     def test_bytes(self):
         self.assertEqual(bc.format_bytes(512), "512.00 B")
 
-    def test_kb(self):
-        self.assertEqual(bc.format_bytes(4 * 1024), "4.00 KB")
+    def test_kib(self):
+        self.assertEqual(bc.format_bytes(4 * 1024), "4.00 KiB")
 
-    def test_mb(self):
-        self.assertEqual(bc.format_bytes(1.5 * 1024 ** 2), "1.50 MB")
+    def test_mib(self):
+        self.assertEqual(bc.format_bytes(1.5 * 1024 ** 2), "1.50 MiB")
 
-    def test_gb(self):
-        self.assertEqual(bc.format_bytes(2.0 * 1024 ** 3), "2.00 GB")
+    def test_gib(self):
+        self.assertEqual(bc.format_bytes(2.0 * 1024 ** 3), "2.00 GiB")
 
-    def test_tb(self):
-        self.assertEqual(bc.format_bytes(1.0 * 1024 ** 4), "1.00 TB")
+    def test_tib(self):
+        self.assertEqual(bc.format_bytes(1.0 * 1024 ** 4), "1.00 TiB")
+
+    def test_pib(self):
+        self.assertEqual(bc.format_bytes(1.0 * 1024 ** 5), "1.00 PiB")
 
     def test_zero(self):
         self.assertEqual(bc.format_bytes(0), "0.00 B")
+
+    def test_just_below_kib(self):
+        self.assertEqual(bc.format_bytes(1023), "1023.00 B")
+
+    def test_exact_1_kib(self):
+        self.assertEqual(bc.format_bytes(1024), "1.00 KiB")
+
+
+# ---------------------------------------------------------------------------
+# 1b. Integer byte parsing (DsmcInvocationStats.bytes_* are int)
+# ---------------------------------------------------------------------------
+
+class TestByteParsing(unittest.TestCase):
+    """Parsed byte counts must be exact integers (1024-based units)."""
+
+    def _parse_bytes_line(self, line: str) -> bc.DsmcInvocationStats:
+        stats = bc.DsmcInvocationStats()
+        bc.parse_dsmc_summary_line(line, stats)
+        return stats
+
+    def test_zero_bytes(self):
+        # dsmc uses two spaces before the unit when the value is 0: "0  B"
+        # The double space is actual dsmc output, not a typo.
+        stats = self._parse_bytes_line("Total number of bytes transferred:    0  B")
+        self.assertEqual(stats.bytes_transferred, 0)
+        self.assertIsInstance(stats.bytes_transferred, int)
+
+    def test_4kb_is_4096_bytes(self):
+        stats = self._parse_bytes_line("Total number of bytes inspected:   4.00 KB")
+        self.assertEqual(stats.bytes_inspected, 4096)
+        self.assertIsInstance(stats.bytes_inspected, int)
+
+    def test_1_5mb_is_1572864_bytes(self):
+        stats = self._parse_bytes_line("Total number of bytes transferred:   1.50 MB")
+        self.assertEqual(stats.bytes_transferred, 1572864)
+        self.assertIsInstance(stats.bytes_transferred, int)
+
+    def test_2_5gb_is_correct_bytes(self):
+        stats = self._parse_bytes_line("Total number of bytes transferred:   2.50 GB")
+        self.assertEqual(stats.bytes_transferred, round(2.5 * 1024 ** 3))
+        self.assertIsInstance(stats.bytes_transferred, int)
+
+    def test_inspected_field_is_int(self):
+        stats = self._parse_bytes_line("Total number of bytes inspected:   512.00 MB")
+        self.assertIsInstance(stats.bytes_inspected, int)
+        self.assertEqual(stats.bytes_inspected, 512 * 1024 * 1024)
+
+
+# ---------------------------------------------------------------------------
+# 1c. Duplicate summary keys — last occurrence wins
+# ---------------------------------------------------------------------------
+
+class TestDuplicateSummaryKeys(unittest.TestCase):
+    """When dsmc emits the same summary key twice, the last value must win."""
+
+    def test_duplicate_backed_up_uses_last(self):
+        stats = bc.DsmcInvocationStats()
+        bc.parse_dsmc_summary_line("Total number of objects backed up:   3", stats)
+        bc.parse_dsmc_summary_line("Total number of objects backed up:   7", stats)
+        self.assertEqual(stats.objects_backed_up, 7)
+
+    def test_duplicate_bytes_inspected_uses_last(self):
+        stats = bc.DsmcInvocationStats()
+        bc.parse_dsmc_summary_line("Total number of bytes inspected:   1.00 KB", stats)
+        bc.parse_dsmc_summary_line("Total number of bytes inspected:   2.00 KB", stats)
+        self.assertEqual(stats.bytes_inspected, 2048)
+
+    def test_duplicate_elapsed_uses_last(self):
+        stats = bc.DsmcInvocationStats()
+        bc.parse_dsmc_summary_line("Elapsed processing time:  00:00:10", stats)
+        bc.parse_dsmc_summary_line("Elapsed processing time:  00:00:30", stats)
+        self.assertEqual(stats.elapsed_secs, 30)
+
+
+# ---------------------------------------------------------------------------
+# 1d. GlobalDsmcStats — counters, completeness, thread-safety
+# ---------------------------------------------------------------------------
+
+class TestGlobalDsmcStats(unittest.TestCase):
+    """Thread-safe aggregate statistics."""
+
+    def _make_stats(self, **kwargs) -> bc.DsmcInvocationStats:
+        """Return a DsmcInvocationStats with elapsed_secs=1 by default
+        (so has_data() returns True) plus any extra overrides."""
+        s = bc.DsmcInvocationStats(elapsed_secs=1, **kwargs)
+        return s
+
+    def test_dsmc_done_increments_per_invocation(self):
+        gs = bc.GlobalDsmcStats()
+        gs.add_invocation(self._make_stats())
+        gs.add_invocation(self._make_stats())
+        self.assertEqual(gs.snapshot()["dsmc_done"], 2)
+
+    def test_summaries_parsed_counts_complete(self):
+        gs = bc.GlobalDsmcStats()
+        gs.add_invocation(self._make_stats(objects_backed_up=5))
+        self.assertEqual(gs.snapshot()["summaries_parsed"], 1)
+        self.assertEqual(gs.snapshot()["incomplete_summaries"], 0)
+
+    def test_incomplete_counted_when_no_data(self):
+        gs = bc.GlobalDsmcStats()
+        empty = bc.DsmcInvocationStats()  # has_data() == False
+        gs.add_invocation(empty)
+        snap = gs.snapshot()
+        self.assertEqual(snap["dsmc_done"], 1)
+        self.assertEqual(snap["summaries_parsed"], 0)
+        self.assertEqual(snap["incomplete_summaries"], 1)
+
+    def test_incomplete_does_not_add_bytes(self):
+        gs = bc.GlobalDsmcStats()
+        empty = bc.DsmcInvocationStats()
+        gs.add_invocation(empty)
+        snap = gs.snapshot()
+        self.assertEqual(snap["bytes_inspected"], 0)
+        self.assertEqual(snap["bytes_transferred"], 0)
+
+    def test_byte_totals_are_integers(self):
+        gs = bc.GlobalDsmcStats()
+        gs.add_invocation(self._make_stats(bytes_inspected=4096, bytes_transferred=1024))
+        snap = gs.snapshot()
+        self.assertIsInstance(snap["bytes_inspected"], int)
+        self.assertIsInstance(snap["bytes_transferred"], int)
+
+    def test_all_object_fields_accumulated(self):
+        gs = bc.GlobalDsmcStats()
+        gs.add_invocation(self._make_stats(
+            objects_inspected=10,
+            objects_backed_up=5,
+            objects_updated=2,
+            objects_rebound=1,
+            objects_deleted=1,
+            objects_expired=1,
+            objects_failed=1,
+            objects_encrypted=1,
+            objects_grew=1,
+            retries=1,
+        ))
+        gs.add_invocation(self._make_stats(
+            objects_inspected=10,
+            objects_backed_up=5,
+            objects_updated=2,
+        ))
+        snap = gs.snapshot()
+        self.assertEqual(snap["objects_inspected"], 20)
+        self.assertEqual(snap["objects_backed_up"], 10)
+        self.assertEqual(snap["objects_updated"], 4)
+        self.assertEqual(snap["objects_rebound"], 1)
+        self.assertEqual(snap["objects_deleted"], 1)
+        self.assertEqual(snap["objects_expired"], 1)
+        self.assertEqual(snap["objects_failed"], 1)
+        self.assertEqual(snap["objects_encrypted"], 1)
+        self.assertEqual(snap["objects_grew"], 1)
+        self.assertEqual(snap["retries"], 1)
+
+    def test_bytes_accumulated_correctly(self):
+        gs = bc.GlobalDsmcStats()
+        gs.add_invocation(self._make_stats(bytes_inspected=4096, bytes_transferred=1024))
+        gs.add_invocation(self._make_stats(bytes_inspected=8192, bytes_transferred=2048))
+        snap = gs.snapshot()
+        self.assertEqual(snap["bytes_inspected"], 12288)
+        self.assertEqual(snap["bytes_transferred"], 3072)
+
+    def test_exactly_once_merge(self):
+        """Each invocation stats object must only be merged once (caller responsibility)."""
+        gs = bc.GlobalDsmcStats()
+        inv = self._make_stats(objects_backed_up=10, bytes_inspected=1024)
+        gs.add_invocation(inv)
+        # Simulating exactly-once: do NOT call add_invocation again for same inv
+        snap = gs.snapshot()
+        self.assertEqual(snap["objects_backed_up"], 10)
+        self.assertEqual(snap["bytes_inspected"], 1024)
+        self.assertEqual(snap["dsmc_done"], 1)
+
+    def test_concurrent_workers_no_lost_updates(self):
+        """N threads each adding M invocations must yield N*M total without loss."""
+        NUM_THREADS = 8
+        INVOCATIONS_PER_THREAD = 50
+        gs = bc.GlobalDsmcStats()
+        barrier = threading.Barrier(NUM_THREADS)
+
+        def _add_many():
+            barrier.wait()  # All start at the same time
+            for _ in range(INVOCATIONS_PER_THREAD):
+                gs.add_invocation(self._make_stats(
+                    objects_backed_up=1,
+                    bytes_inspected=1024,
+                    bytes_transferred=512,
+                ))
+
+        threads = [threading.Thread(target=_add_many) for _ in range(NUM_THREADS)]
+        for t in threads:
+            t.start()
+        for t in threads:
+            t.join(timeout=15)
+
+        # Verify all threads completed within the timeout
+        for t in threads:
+            self.assertFalse(t.is_alive(), f"Thread {t.name} did not complete within timeout")
+
+        snap = gs.snapshot()
+        expected = NUM_THREADS * INVOCATIONS_PER_THREAD
+        self.assertEqual(snap["dsmc_done"], expected)
+        self.assertEqual(snap["summaries_parsed"], expected)
+        self.assertEqual(snap["objects_backed_up"], expected)
+        self.assertEqual(snap["bytes_inspected"], expected * 1024)
+        self.assertEqual(snap["bytes_transferred"], expected * 512)
+
+    def test_snapshot_is_consistent(self):
+        """snapshot() must return a consistent copy, not partial state."""
+        gs = bc.GlobalDsmcStats()
+        stop = threading.Event()
+
+        def _writer():
+            while not stop.is_set():
+                gs.add_invocation(self._make_stats(
+                    objects_backed_up=1,
+                    bytes_inspected=1000,
+                    bytes_transferred=500,
+                ))
+
+        writer = threading.Thread(target=_writer, daemon=True)
+        writer.start()
+        time.sleep(0.05)
+
+        # Take multiple snapshots and verify internal consistency
+        for _ in range(20):
+            snap = gs.snapshot()
+            # dsmc_done == summaries_parsed + incomplete_summaries
+            self.assertEqual(
+                snap["dsmc_done"],
+                snap["summaries_parsed"] + snap["incomplete_summaries"],
+            )
+
+        stop.set()
+        writer.join(timeout=5)
+        self.assertFalse(writer.is_alive(), "Writer thread did not stop within timeout")
+
+
+# ---------------------------------------------------------------------------
+# 1e. Dry-run exclusion — no dsmc stats fabricated
+# ---------------------------------------------------------------------------
+
+class TestDryRunExclusion(unittest.TestCase):
+    """Dry-run invocations must not add any stats to GlobalDsmcStats."""
+
+    def test_dry_run_does_not_add_invocation(self):
+        """
+        The worker/root_files_job code path never calls add_invocation when
+        args.dry_run is True.  We verify this by running run_root_files_job
+        in dry-run mode and checking that global_stats remain at zero.
+        """
+        import argparse
+        import shutil as _shutil
+
+        tmpdir = tempfile.mkdtemp()
+        try:
+            # Create one plain file so the job is not skipped
+            (Path(tmpdir) / "dummy_file").write_text("data")
+
+            log_dir = Path(tmpdir) / "logs"
+            log_dir.mkdir()
+
+            args = argparse.Namespace(
+                log_dir=str(log_dir),
+                dsmc="/bin/true",
+                dsmc_option=[],
+                dsmc_timeout=0,
+                dsmc_idle_timeout=0,
+                resourceutilization=2,
+                dry_run=True,
+            )
+
+            ws = bc.WorkerStates(1, has_root_files_job=True)
+            gs = bc.GlobalDsmcStats()
+            stop_event = threading.Event()
+            logger = bc.SafeLogger(log_dir / "ctrl.log", echo=False)
+            failed_log = log_dir / "failed.tsv"
+            failed_log.write_text("return_code\tdirectory\tnotes\n")
+            failed_logger = bc.SafeAppender(failed_log)
+
+            t = threading.Thread(
+                target=bc.run_root_files_job,
+                args=(args, tmpdir, frozenset(), ws, gs, logger, failed_logger, stop_event),
+            )
+            t.start()
+            t.join(timeout=30)
+            self.assertFalse(t.is_alive())
+
+            snap = gs.snapshot()
+            self.assertEqual(snap["dsmc_done"], 0,
+                "Dry-run must not increment dsmc_done")
+            self.assertEqual(snap["objects_backed_up"], 0,
+                "Dry-run must not fabricate objects_backed_up")
+            self.assertEqual(snap["bytes_inspected"], 0,
+                "Dry-run must not fabricate bytes_inspected")
+        finally:
+            _shutil.rmtree(tmpdir, ignore_errors=True)
 
 
 # ---------------------------------------------------------------------------
