@@ -1648,5 +1648,434 @@ class TestDashboardRowWidth(unittest.TestCase):
         self.assertEqual(self._MAX_PATH, 78)
 
 
+# ---------------------------------------------------------------------------
+# 15. format_final_summary
+# ---------------------------------------------------------------------------
+
+def _make_gs(
+    dsmc_done: int = 0,
+    summaries_parsed: int = 0,
+    incomplete_summaries: int = 0,
+    active_children: int = 0,
+    objects_inspected: int = 0,
+    objects_backed_up: int = 0,
+    objects_updated: int = 0,
+    objects_failed: int = 0,
+    retries: int = 0,
+    objects_rebound: int = 0,
+    objects_deleted: int = 0,
+    objects_expired: int = 0,
+    objects_encrypted: int = 0,
+    objects_grew: int = 0,
+    bytes_inspected: int = 0,
+    bytes_transferred: int = 0,
+    total_elapsed_secs: float = 0.0,
+) -> dict:
+    """Return a GlobalDsmcStats snapshot dict with sensible defaults."""
+    return {
+        "dsmc_done": dsmc_done,
+        "summaries_parsed": summaries_parsed,
+        "incomplete_summaries": incomplete_summaries,
+        "active_children": active_children,
+        "objects_inspected": objects_inspected,
+        "objects_backed_up": objects_backed_up,
+        "objects_updated": objects_updated,
+        "objects_failed": objects_failed,
+        "retries": retries,
+        "objects_rebound": objects_rebound,
+        "objects_deleted": objects_deleted,
+        "objects_expired": objects_expired,
+        "objects_encrypted": objects_encrypted,
+        "objects_grew": objects_grew,
+        "bytes_inspected": bytes_inspected,
+        "bytes_transferred": bytes_transferred,
+        "total_elapsed_secs": total_elapsed_secs,
+    }
+
+
+class TestFormatFinalSummary(unittest.TestCase):
+    """Tests for the format_final_summary function."""
+
+    # -----------------------------------------------------------------------
+    # Helpers
+    # -----------------------------------------------------------------------
+
+    def _call(
+        self,
+        root: str = "/data",
+        streams: int = 4,
+        elapsed_secs: float = 60.0,
+        discovered: int = 10,
+        completed: int = 10,
+        failed: int = 0,
+        skipped: int = 0,
+        excluded: int = 0,
+        errors: int = 0,
+        gs: dict | None = None,
+        is_root_crawl: bool = False,
+        root_state: "bc.WorkerState | None" = None,
+        scanner_done: bool = True,
+    ) -> str:
+        if gs is None:
+            gs = _make_gs()
+        return bc.format_final_summary(
+            root=root,
+            streams=streams,
+            elapsed_secs=elapsed_secs,
+            discovered=discovered,
+            completed=completed,
+            failed=failed,
+            skipped=skipped,
+            excluded=excluded,
+            errors=errors,
+            gs=gs,
+            is_root_crawl=is_root_crawl,
+            root_state=root_state,
+            scanner_done=scanner_done,
+        )
+
+    # -----------------------------------------------------------------------
+    # Structural checks
+    # -----------------------------------------------------------------------
+
+    def test_starts_and_ends_with_separator(self):
+        s = self._call()
+        lines = s.splitlines()
+        self.assertEqual(lines[0], "=" * 80)
+        self.assertEqual(lines[-1], "=" * 80)
+
+    def test_contains_header_text(self):
+        s = self._call()
+        self.assertIn("FINAL BACKUP SUMMARY", s)
+
+    def test_contains_root_path(self):
+        s = self._call(root="/mnt/data")
+        self.assertIn("/mnt/data", s)
+
+    def test_contains_worker_count(self):
+        s = self._call(streams=8)
+        self.assertIn("8", s)
+
+    def test_elapsed_formatted_as_hhmmss(self):
+        s = self._call(elapsed_secs=3661.0)  # 1h 1m 1s
+        self.assertIn("01:01:01", s)
+
+    def test_elapsed_zero(self):
+        s = self._call(elapsed_secs=0.0)
+        self.assertIn("00:00:00", s)
+
+    # -----------------------------------------------------------------------
+    # Run status
+    # -----------------------------------------------------------------------
+
+    def test_success_outcome(self):
+        s = self._call(failed=0, errors=0)
+        self.assertIn("SUCCESS", s)
+
+    def test_failure_outcome_on_failed_dirs(self):
+        s = self._call(failed=3, errors=0)
+        self.assertIn("COMPLETED WITH FAILURES", s)
+        self.assertIn("3 directory job(s) failed", s)
+
+    def test_failure_outcome_on_scan_errors(self):
+        s = self._call(failed=0, errors=2)
+        self.assertIn("COMPLETED WITH FAILURES", s)
+        self.assertIn("2 scan error(s)", s)
+
+    def test_failure_outcome_includes_both_components(self):
+        s = self._call(failed=1, errors=1)
+        self.assertIn("1 directory job(s) failed", s)
+        self.assertIn("1 scan error(s)", s)
+
+    def test_scanner_done_shown(self):
+        s = self._call(scanner_done=True)
+        self.assertIn("DONE", s)
+
+    def test_scanner_not_done_shown(self):
+        s = self._call(scanner_done=False)
+        self.assertIn("DID NOT FINISH", s)
+
+    # -----------------------------------------------------------------------
+    # Directory / folder accounting
+    # -----------------------------------------------------------------------
+
+    def test_directory_section_heading(self):
+        s = self._call()
+        self.assertIn("Directories", s)
+
+    def test_discovered_count_present(self):
+        s = self._call(discovered=12345, completed=12345, failed=0)
+        # thousands separator expected
+        self.assertIn("12,345", s)
+
+    def test_completed_count_present(self):
+        s = self._call(discovered=100, completed=95, failed=5)
+        self.assertIn("95", s)
+
+    def test_failed_count_present(self):
+        s = self._call(discovered=100, completed=97, failed=3)
+        self.assertIn("3", s)
+
+    def test_excluded_count_present(self):
+        s = self._call(excluded=7)
+        self.assertIn("7", s)
+
+    def test_skipped_count_present(self):
+        s = self._call(skipped=2)
+        self.assertIn("2", s)
+
+    def test_scan_errors_count_present(self):
+        s = self._call(errors=4)
+        self.assertIn("4", s)
+
+    # -----------------------------------------------------------------------
+    # Reconciliation
+    # -----------------------------------------------------------------------
+
+    def test_reconciliation_ok_label(self):
+        s = self._call(discovered=10, completed=8, failed=2)
+        self.assertIn("OK", s)
+        self.assertIn("10 = 8 + 2", s)
+
+    def test_reconciliation_mismatch_label(self):
+        # discovered=10, completed+failed=8 → 2 unaccounted
+        s = self._call(discovered=10, completed=7, failed=1)
+        self.assertIn("MISMATCH", s)
+        self.assertIn("2 unaccounted", s)
+
+    def test_reconciliation_zero_all(self):
+        s = self._call(discovered=0, completed=0, failed=0)
+        self.assertIn("OK", s)
+
+    # -----------------------------------------------------------------------
+    # dsmc invocation accounting
+    # -----------------------------------------------------------------------
+
+    def test_dsmc_invocation_section_heading(self):
+        s = self._call()
+        self.assertIn("dsmc invocation", s)
+
+    def test_dsmc_done_count(self):
+        s = self._call(gs=_make_gs(dsmc_done=42))
+        self.assertIn("42", s)
+
+    def test_summaries_parsed_count(self):
+        s = self._call(gs=_make_gs(dsmc_done=10, summaries_parsed=8))
+        self.assertIn("8", s)
+
+    def test_incomplete_summaries_count(self):
+        s = self._call(gs=_make_gs(dsmc_done=10, incomplete_summaries=2))
+        self.assertIn("2", s)
+
+    def test_active_children_zero(self):
+        """active_children should render safely as zero on clean completion."""
+        s = self._call(gs=_make_gs(active_children=0))
+        # Line should exist and show 0
+        self.assertIn("Active children", s)
+
+    # -----------------------------------------------------------------------
+    # Object totals — separately labelled from directory counts
+    # -----------------------------------------------------------------------
+
+    def test_objects_section_separately_labelled(self):
+        s = self._call()
+        # Both headings must be present and distinct
+        self.assertIn("Directories", s)
+        self.assertIn("Objects reported by dsmc", s)
+
+    def test_objects_inspected(self):
+        s = self._call(gs=_make_gs(objects_inspected=1_234_567))
+        self.assertIn("1,234,567", s)
+
+    def test_objects_backed_up(self):
+        s = self._call(gs=_make_gs(objects_backed_up=45_678))
+        self.assertIn("45,678", s)
+
+    def test_objects_updated(self):
+        s = self._call(gs=_make_gs(objects_updated=300))
+        self.assertIn("300", s)
+
+    def test_objects_failed(self):
+        s = self._call(gs=_make_gs(objects_failed=7))
+        self.assertIn("7", s)
+
+    def test_retries(self):
+        s = self._call(gs=_make_gs(retries=5))
+        self.assertIn("5", s)
+
+    def test_optional_object_field_shown_when_nonzero(self):
+        s = self._call(gs=_make_gs(objects_rebound=3))
+        self.assertIn("Rebound", s)
+        self.assertIn("3", s)
+
+    def test_optional_object_field_hidden_when_zero(self):
+        s = self._call(gs=_make_gs(objects_rebound=0))
+        self.assertNotIn("Rebound", s)
+
+    def test_all_zero_object_counters_render_safely(self):
+        s = self._call(gs=_make_gs())
+        self.assertIn("Inspected", s)
+        self.assertIn("Backed up", s)
+
+    # -----------------------------------------------------------------------
+    # Byte totals — exact integer and human-readable form
+    # -----------------------------------------------------------------------
+
+    def test_data_section_heading(self):
+        s = self._call()
+        self.assertIn("Data reported by dsmc", s)
+
+    def test_bytes_inspected_exact_integer(self):
+        s = self._call(gs=_make_gs(bytes_inspected=123_456_789))
+        # exact bytes value with thousands separator
+        self.assertIn("123,456,789 bytes", s)
+
+    def test_bytes_inspected_human_readable(self):
+        s = self._call(gs=_make_gs(bytes_inspected=123_456_789))
+        # human-readable IEC form must also be present
+        self.assertIn("MiB", s)
+
+    def test_bytes_transferred_exact_integer(self):
+        s = self._call(gs=_make_gs(bytes_transferred=4_567_890))
+        self.assertIn("4,567,890 bytes", s)
+
+    def test_bytes_transferred_human_readable(self):
+        s = self._call(gs=_make_gs(bytes_transferred=4_567_890))
+        self.assertIn("MiB", s)
+
+    def test_zero_bytes_render_safely(self):
+        s = self._call(gs=_make_gs(bytes_inspected=0, bytes_transferred=0))
+        self.assertIn("0 bytes", s)
+
+    def test_effective_rate_shown_when_data_transferred(self):
+        s = self._call(gs=_make_gs(
+            bytes_transferred=10_000,
+            total_elapsed_secs=100.0,
+        ))
+        self.assertIn("Effective rate", s)
+        self.assertIn("/s", s)
+
+    def test_effective_rate_absent_when_zero_transfer(self):
+        s = self._call(gs=_make_gs(bytes_transferred=0, total_elapsed_secs=100.0))
+        self.assertNotIn("Effective rate", s)
+
+    def test_effective_rate_absent_when_zero_elapsed(self):
+        s = self._call(gs=_make_gs(bytes_transferred=1000, total_elapsed_secs=0.0))
+        self.assertNotIn("Effective rate", s)
+
+    # -----------------------------------------------------------------------
+    # ROOT_FILES accounting
+    # -----------------------------------------------------------------------
+
+    def test_root_files_section_absent_when_not_root_crawl(self):
+        s = self._call(is_root_crawl=False, root_state=None)
+        self.assertNotIn("ROOT_FILES", s)
+
+    def test_root_files_section_present_when_root_crawl(self):
+        rs = bc.WorkerState(worker_number=0)
+        rs.status = "done"
+        rs.dirs_completed = 2
+        rs.dirs_failed = 0
+        rs.dirs_timed_out = 0
+        rs.batch_total = 2
+        s = self._call(is_root_crawl=True, root_state=rs)
+        self.assertIn("ROOT_FILES", s)
+
+    def test_root_files_status_shown(self):
+        rs = bc.WorkerState(worker_number=0)
+        rs.status = "done"
+        rs.dirs_completed = 1
+        rs.dirs_failed = 0
+        rs.dirs_timed_out = 0
+        rs.batch_total = 1
+        s = self._call(is_root_crawl=True, root_state=rs)
+        self.assertIn("done", s)
+
+    def test_root_files_chunk_counts_shown(self):
+        rs = bc.WorkerState(worker_number=0)
+        rs.status = "done"
+        rs.dirs_completed = 3
+        rs.dirs_failed = 1
+        rs.dirs_timed_out = 0
+        rs.batch_total = 4
+        s = self._call(is_root_crawl=True, root_state=rs)
+        self.assertIn("3", s)  # chunks completed
+        self.assertIn("4", s)  # total chunks
+
+    def test_root_files_none_state_graceful(self):
+        """root_state=None must not raise; a placeholder message is shown."""
+        s = self._call(is_root_crawl=True, root_state=None)
+        self.assertIn("ROOT_FILES", s)
+        self.assertIn("no ROOT_FILES state", s)
+
+    # -----------------------------------------------------------------------
+    # Thousands separators
+    # -----------------------------------------------------------------------
+
+    def test_large_counts_have_thousands_separators(self):
+        s = self._call(
+            discovered=1_000_000,
+            completed=999_990,
+            failed=10,
+            gs=_make_gs(objects_backed_up=1_234_567),
+        )
+        self.assertIn("1,000,000", s)
+        self.assertIn("1,234,567", s)
+
+    # -----------------------------------------------------------------------
+    # SafeLogger.write_raw
+    # -----------------------------------------------------------------------
+
+    def test_write_raw_appends_to_log(self):
+        """write_raw must write the raw text to the log file."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            log_path = Path(tmpdir) / "ctrl.log"
+            logger = bc.SafeLogger(log_path, echo=False)
+            logger.write_raw("BLOCK LINE 1\nBLOCK LINE 2\n")
+            content = log_path.read_text(encoding="utf-8")
+            self.assertIn("BLOCK LINE 1\n", content)
+            self.assertIn("BLOCK LINE 2\n", content)
+
+    def test_write_raw_does_not_add_timestamp_prefix(self):
+        """write_raw must not prepend a timestamp to each line."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            log_path = Path(tmpdir) / "ctrl.log"
+            logger = bc.SafeLogger(log_path, echo=False)
+            logger.write_raw("MARKER_LINE\n")
+            first_line = log_path.read_text(encoding="utf-8").splitlines()[0]
+            # A timestamped line would look like "2026-07-17 08:00:00 MARKER_LINE";
+            # raw output must not start with a date-like prefix.
+            self.assertEqual(first_line, "MARKER_LINE")
+
+    def test_write_raw_appends_newline_when_missing(self):
+        """write_raw must ensure the content ends with a newline."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            log_path = Path(tmpdir) / "ctrl.log"
+            logger = bc.SafeLogger(log_path, echo=False)
+            logger.write_raw("NO_NEWLINE")
+            content = log_path.read_text(encoding="utf-8")
+            self.assertTrue(content.endswith("\n"))
+
+    # -----------------------------------------------------------------------
+    # _format_elapsed helper
+    # -----------------------------------------------------------------------
+
+    def test_format_elapsed_zero(self):
+        self.assertEqual(bc._format_elapsed(0), "00:00:00")
+
+    def test_format_elapsed_seconds_only(self):
+        self.assertEqual(bc._format_elapsed(45), "00:00:45")
+
+    def test_format_elapsed_minutes_and_seconds(self):
+        self.assertEqual(bc._format_elapsed(125), "00:02:05")
+
+    def test_format_elapsed_hours(self):
+        self.assertEqual(bc._format_elapsed(3661), "01:01:01")
+
+    def test_format_elapsed_large(self):
+        # 25h 30m 0s
+        self.assertEqual(bc._format_elapsed(91800), "25:30:00")
+
+
 if __name__ == "__main__":
     unittest.main()
