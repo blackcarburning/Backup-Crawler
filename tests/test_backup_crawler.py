@@ -1305,6 +1305,21 @@ class TestRunRootFilesJobDryRun(unittest.TestCase):
         finally:
             _shutil.rmtree(tmpdir, ignore_errors=True)
 
+    def test_log_contains_full_path_without_truncation(self):
+        import shutil as _shutil
+        # 12 repeated segments force a clearly long operand path in logs; this
+        # verifies dashboard-only truncation never alters logged full paths.
+        long_name = ("segment_" * 12) + "tail.txt"
+        _, log_path, tmpdir = self._run_job(
+            files_to_create=[long_name],
+            dirs_to_create=[],
+        )
+        try:
+            log_content = log_path.read_bytes().decode("utf-8", errors="replace")
+            self.assertIn(str(Path(tmpdir) / long_name), log_content)
+        finally:
+            _shutil.rmtree(tmpdir, ignore_errors=True)
+
     def test_files_appear_as_explicit_operands_not_slash(self):
         """The dsmc command must contain explicit file paths, never the bare / operand."""
         import ast
@@ -1381,8 +1396,8 @@ class TestWorkerStatesRootFilesSlot(unittest.TestCase):
 # ---------------------------------------------------------------------------
 
 class TestTruncatePath(unittest.TestCase):
-    """Dashboard.truncate_path must truncate long paths with an ASCII ellipsis
-    while preserving the tail (basename) of the path."""
+    """Dashboard.truncate_path must middle-truncate with an ASCII marker while
+    preserving useful context from both ends of long paths."""
 
     # --- basic behaviour ---
 
@@ -1394,11 +1409,11 @@ class TestTruncatePath(unittest.TestCase):
         path = "abc"
         self.assertEqual(bc.Dashboard.truncate_path(path, 3), path)
 
-    def test_long_path_truncated_with_prefix_ellipsis(self):
+    def test_long_path_truncated_with_middle_marker(self):
         path = "/very/long/path/to/some/directory/with/a/meaningful/basename"
         result = bc.Dashboard.truncate_path(path, 20)
         self.assertEqual(len(result), 20)
-        self.assertTrue(result.startswith("..."))
+        self.assertIn(".....", result)
 
     def test_truncated_result_has_correct_length(self):
         path = "/" + "x" * 100
@@ -1408,20 +1423,25 @@ class TestTruncatePath(unittest.TestCase):
 
     # --- tail/basename preservation ---
 
+    def test_prefix_and_tail_are_preserved(self):
+        path = "/home/user/node_modules/parse5/lib/extensions"
+        result = bc.Dashboard.truncate_path(path, 30)
+        self.assertEqual(len(result), 30)
+        self.assertIn(path[:10], result)
+        self.assertIn(path[-10:], result)
+        self.assertEqual(result.count("....."), 1)
+
     def test_tail_basename_preserved(self):
         path = "/home/user/node_modules/parse5/lib/extensions"
         result = bc.Dashboard.truncate_path(path, 30)
-        # Truncation must have occurred and the suffix must be prepended.
-        self.assertTrue(result.startswith("..."))
-        # The basename and surrounding components must appear at the end.
-        self.assertTrue(result.endswith("parse5/lib/extensions"))
+        self.assertTrue(result.endswith("extensions"))
 
     def test_suffix_is_ascii_not_unicode(self):
         path = "/a/very/long/path/that/needs/truncation"
         result = bc.Dashboard.truncate_path(path, 10)
         # Must not contain the Unicode ellipsis character
         self.assertNotIn("\u2026", result)
-        self.assertTrue(result.startswith("..."))
+        self.assertIn(".....", result)
 
     # --- edge cases: very small widths ---
 
@@ -1441,27 +1461,31 @@ class TestTruncatePath(unittest.TestCase):
         self.assertEqual(result, "..")
         self.assertEqual(len(result), 2)
 
-    def test_width_3_exact_suffix_width(self):
+    def test_width_3_returns_clipped_marker(self):
         result = bc.Dashboard.truncate_path("/some/path", 3)
         self.assertEqual(result, "...")
         self.assertEqual(len(result), 3)
 
-    def test_width_4_includes_one_path_char(self):
+    def test_width_4_returns_clipped_marker(self):
         path = "/abcde"
         result = bc.Dashboard.truncate_path(path, 4)
-        self.assertEqual(len(result), 4)
-        self.assertTrue(result.startswith("..."))
-        # Last char must be the tail of the path
-        self.assertEqual(result[-1], "e")
+        self.assertEqual(result, "....")
+
+    def test_width_7_splits_prefix_and_suffix(self):
+        path = "/abcdefg"
+        result = bc.Dashboard.truncate_path(path, 7)
+        self.assertEqual(result, "/.....g")
 
     def test_empty_path_unchanged(self):
         self.assertEqual(bc.Dashboard.truncate_path("", 10), "")
 
-    def test_custom_suffix(self):
+    def test_custom_marker(self):
         path = "/home/user/documents/project/README.md"
-        result = bc.Dashboard.truncate_path(path, 20, suffix=">>")
+        result = bc.Dashboard.truncate_path(path, 20, marker=">>")
         self.assertEqual(len(result), 20)
-        self.assertTrue(result.startswith(">>"))
+        self.assertEqual(result.count(">>"), 1)
+        self.assertIn(path[:9], result)
+        self.assertIn(path[-9:], result)
 
     # --- ROOT_FILES chunk label (not a file path, but must still fit) ---
 
@@ -1473,7 +1497,7 @@ class TestTruncatePath(unittest.TestCase):
         label = "chunk 100/200 (some extra description text that is very long)"
         result = bc.Dashboard.truncate_path(label, 20)
         self.assertEqual(len(result), 20)
-        self.assertTrue(result.startswith("..."))
+        self.assertIn(".....", result)
 
 
 # ---------------------------------------------------------------------------
@@ -1520,7 +1544,7 @@ class TestDashboardRowWidth(unittest.TestCase):
 
     def _path_width(self, terminal_width: int) -> int:
         """Mirror Dashboard._render's path_width formula."""
-        return max(8, min(self._MAX_PATH, terminal_width - self._static_width()))
+        return min(self._MAX_PATH, max(0, terminal_width - self._static_width()))
 
     def _row_for(self, path: str, terminal_width: int) -> str:
         """Build a full worker row as Dashboard._render would, then clip it."""
@@ -1605,20 +1629,23 @@ class TestDashboardRowWidth(unittest.TestCase):
             f"ROOT_FILES row length {len(row)} exceeds 120 cols: {row!r}")
 
     def test_short_path_not_truncated(self):
-        # On a 200-col terminal, path_width = min(MAX_PATH_DISPLAY, 200-static_width) = 60.
-        # A short path under 60 chars must pass through unchanged.
+        # On a 200-col terminal, path_width = min(MAX_PATH_DISPLAY, 200-static_width) = 78.
+        # A short path under 78 chars must pass through unchanged.
         short_path = "/home/user"
         result = bc.Dashboard.truncate_path(short_path, self._path_width(200))
         self.assertEqual(result, short_path,
             "Short path should not be truncated")
 
-    def test_truncated_path_has_ellipsis(self):
+    def test_truncated_path_has_middle_marker_once(self):
         long_path = "/" + "a/b/c/" * 20
-        # Use a wide terminal (200 cols) so path_width = MAX_PATH_DISPLAY = 60;
+        # Use a wide terminal (200 cols) so path_width = MAX_PATH_DISPLAY = 78;
         # with a path of 120 chars it will definitely be truncated.
         result = bc.Dashboard.truncate_path(long_path, self._path_width(200))
-        self.assertTrue(result.startswith("..."),
-            f"Truncated path should start with '...', got: {result!r}")
+        self.assertEqual(result.count("....."), 1,
+            f"Truncated path should contain exactly one middle marker, got: {result!r}")
+
+    def test_max_path_display_is_78(self):
+        self.assertEqual(self._MAX_PATH, 78)
 
 
 if __name__ == "__main__":

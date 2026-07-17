@@ -624,7 +624,7 @@ class Dashboard:
     # Hard upper bound on the displayed path column width.  Prevents very
     # wide terminals from producing an unreadably long path field and keeps
     # every worker row within one visual line on most displays.
-    _MAX_PATH_DISPLAY = 60
+    _MAX_PATH_DISPLAY = 78
 
     def __init__(
         self,
@@ -646,27 +646,34 @@ class Dashboard:
         self._rendered_lines = 0
 
     @staticmethod
-    def truncate_path(path: str, width: int, suffix: str = "...") -> str:
+    def truncate_path(path: str, width: int, marker: str = ".....") -> str:
         """Return *path* truncated to *width* printable characters.
 
-        The **end** of the path is preserved so the basename remains visible.
-        An ASCII *suffix* (default ``"..."``) is prepended when truncation
-        occurs, e.g. ``".../node_modules/parse5/lib/extensions"``.
+        When truncation is needed, preserve both a leading and trailing segment
+        and place an ASCII marker between them (default ``"....."``), e.g.
+        ``"/root/.openclaw...../parse5/lib/extensions"``.
+
+        The split gives the trailing segment a slight bias so the basename and
+        nearest parent directories remain visible for operators.
 
         Edge cases:
         - Returns ``""`` when *width* is < 1.
-        - Returns the suffix clipped to *width* when *width* ≤ len(suffix).
+        - Returns the marker clipped to *width* when *width* ≤ len(marker).
         - Returns the original value unchanged when it already fits.
         """
         if width < 1:
             return ""
         if len(path) <= width:
             return path
-        slen = len(suffix)
-        if width <= slen:
-            return suffix[:width]
-        # Keep the tail of the path so the basename stays visible.
-        return suffix + path[-(width - slen):]
+        mlen = len(marker)
+        if width <= mlen:
+            return marker[:width]
+        keep = width - mlen
+        # Give the trailing segment one extra character when keep is odd so
+        # basename/end context is slightly favored (e.g., keep=5 -> 2+3).
+        trailing_len = (keep + 1) // 2
+        leading_len = keep - trailing_len
+        return path[:leading_len] + marker + path[-trailing_len:]
 
     @staticmethod
     def _bar(index: int, total: int, width: int) -> str:
@@ -758,9 +765,9 @@ class Dashboard:
         # rc=NNN + sp = 7
         # path (remaining)
         static_width = 11 + (bar_width + 3) + 8 + (self._STATUS_WIDTH + 1) + 6 + 10 + 11 + 13 + 18 + 7
-        # Cap path width: never negative/unusably small, and never wider than
-        # _MAX_PATH_DISPLAY so very wide terminals do not produce unwieldy lines.
-        path_width = max(8, min(self._MAX_PATH_DISPLAY, terminal_width - static_width))
+        # Cap path width to available terminal space after static columns (no forced minimum) and
+        # to _MAX_PATH_DISPLAY so very wide terminals do not produce unwieldy lines.
+        path_width = min(self._MAX_PATH_DISPLAY, max(0, terminal_width - static_width))
 
         for state in states:
             # Worker slot 0 is the ROOT_FILES special job; all others are regular workers.

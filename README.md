@@ -169,8 +169,8 @@ Objects: inspected=1,234  backed_up=56  updated=3  failed=0  retries=0
 Data: processed=18.00 MiB  sent=3.25 MiB
 --------------------------------------------------------------------------------
 ROOT_FILES [##########]  1/1  running  b#1  pid=9990   rt:5.1s    idle:0.2s    ok:0 to:0 fl:0  rc=    3 files, 1 chunk(s)
-W01        [##########]  8/20 running  b#6  pid=5432   rt:2.3s    idle:0.1s    ok:76 to:0 fl:0  rc=0   /data/subdir/a…
-W02        [####------]  4/20 quiet   b#5  pid=5431   rt:75.2s   idle:63.1s   ok:60 to:0 fl:1  rc=4   /data/subdir/b…
+W01        [##########]  8/20 running  b#6  pid=5432   rt:2.3s    idle:0.1s    ok:76 to:0 fl:0  rc=0   /data/projects...../node_modules/parse5/lib/extensions
+W02        [####------]  4/20 quiet   b#5  pid=5431   rt:75.2s   idle:63.1s   ok:60 to:0 fl:1  rc=4   /data/sources...../dist/client/chunks/runtime
 W03                    --/-- waiting_for_work b#4                 idle:          ok:40 to:0 fl:0        
 W04                    --/-- done     b#3                         idle:          ok:20 to:0 fl:0        
 ```
@@ -232,7 +232,7 @@ W04                    --/-- done     b#3                         idle:         
 | `idle:N.Ns` | Seconds since dsmc last produced output |
 | `ok:N to:N fl:N` | Cumulative completed / timed-out / failed by this worker |
 | `rc=N` | Return code of the most recently finished invocation |
-| path | Current directory (truncated to fit terminal) |
+| path | Current directory (middle-truncated to fit terminal, preserving both root context and basename/end path, e.g. `leading/path.....trailing/path`) |
 
 **Worker states**
 
