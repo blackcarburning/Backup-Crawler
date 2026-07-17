@@ -2565,3 +2565,536 @@ class TestPersistentMain(unittest.TestCase):
             self.assertEqual(attempts_before, attempts_after)
             self.assertIn("Run mode:  RESUMED", out2)
             self.assertIn("Reused completed work:", out2)
+
+
+# ---------------------------------------------------------------------------
+# 12. DB coordinator (single-writer) architecture
+# ---------------------------------------------------------------------------
+
+class _CoordinatorTestBase(unittest.TestCase):
+    def _make_args(self, mountpoint, log_dir, state_db, *, streams=1, batch_size=2):
+        import argparse
+
+        return argparse.Namespace(
+            mountpoint=mountpoint,
+            streams=streams,
+            batch_size=batch_size,
+            queue_size=100,
+            dsmc=sys.executable,
+            dsmc_option=[],
+            dsmc_timeout=0,
+            dsmc_idle_timeout=0,
+            resourceutilization=2,
+            log_dir=log_dir,
+            state_db=state_db,
+            progress_seconds=1,
+            dashboard_refresh_seconds=1.0,
+            shutdown_wait_seconds=1,
+            no_dashboard=True,
+            dry_run=False,
+            exclude_path=[],
+            resume=False,
+            new_run=False,
+            status=False,
+            streams_positional=None,
+        )
+
+    def _new_run_with_dirs(self, tmpdir, n_dirs):
+        root = Path(tmpdir) / "root"
+        root.mkdir()
+        state_path = Path(tmpdir) / "state.sqlite3"
+        log_dir = Path(tmpdir) / "logs"
+        args = self._make_args(str(root), str(log_dir), str(state_path))
+        state_db = bc.PersistentStateDB(str(state_path))
+        ctx = state_db.create_new_run(
+            str(root),
+            os.stat(root).st_dev,
+            bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+            bc.build_operational_config(args),
+            False,
+        )
+        # Mark the seed root as done and add n_dirs pending backup jobs.
+        conn = sqlite3.connect(state_path)
+        conn.execute(
+            "UPDATE directories SET backup_status='succeeded', scan_status='scanned' WHERE run_id=?",
+            (ctx.run_id,),
+        )
+        conn.commit()
+        conn.close()
+        for idx in range(n_dirs):
+            state_db.insert_directory_if_absent(
+                ctx.run_id,
+                str(root / f"d{idx:03d}"),
+                str(root),
+                os.stat(root).st_dev,
+                "scanned",
+                "pending",
+            )
+        return state_db, ctx, str(state_path)
+
+
+class TestDBCoordinatorConcurrency(_CoordinatorTestBase):
+    def test_many_workers_no_lock_errors(self):
+        """20 simulated workers claim/complete jobs with no sqlite lock errors."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            n_dirs = 40
+            state_db, ctx, _ = self._new_run_with_dirs(tmpdir, n_dirs)
+            coordinator = bc.DBCoordinator(state_db)
+            coordinator.start()
+            processed: list[str] = []
+            errors: list[BaseException] = []
+            lock = threading.Lock()
+
+            def _run_worker(wn: int):
+                try:
+                    while True:
+                        path = coordinator.submit_critical(
+                            "claim_backup_job", ctx.run_id, ctx.controller_id, wn
+                        )
+                        if path is None:
+                            return
+                        attempt_id = coordinator.submit_critical(
+                            "start_directory_attempt",
+                            ctx.run_id,
+                            ctx.execution_id,
+                            path,
+                            wn,
+                            f"worker-{wn:02d}",
+                        )
+                        coordinator.submit_critical(
+                            "finish_directory_attempt",
+                            ctx.run_id,
+                            path,
+                            attempt_id,
+                            "succeeded",
+                            0,
+                            bc.DsmcInvocationStats(),
+                            error_text=None,
+                        )
+                        with lock:
+                            processed.append(path)
+                except Exception as exc:
+                    with lock:
+                        errors.append(exc)
+
+            threads = [threading.Thread(target=_run_worker, args=(i,)) for i in range(1, 21)]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join(timeout=30)
+            coordinator.shutdown()
+
+            self.assertEqual(errors, [], f"unexpected errors: {errors}")
+            self.assertEqual(len(processed), n_dirs)
+            self.assertEqual(len(set(processed)), n_dirs, "a job was processed more than once")
+
+    def test_one_job_claimed_at_a_time_no_duplicates(self):
+        """claim_backup_job hands out exactly one distinct path per call."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            n_dirs = 6
+            state_db, ctx, _ = self._new_run_with_dirs(tmpdir, n_dirs)
+            seen: list[str] = []
+            while True:
+                path = state_db.claim_backup_job(ctx.run_id, ctx.controller_id, 1)
+                if path is None:
+                    break
+                self.assertIsInstance(path, str)
+                seen.append(path)
+            self.assertEqual(len(seen), n_dirs)
+            self.assertEqual(len(set(seen)), n_dirs)
+
+    def test_unstarted_work_stays_pending(self):
+        """Newly discovered work stays 'pending', never silently 'running'."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            n_dirs = 5
+            state_db, ctx, _ = self._new_run_with_dirs(tmpdir, n_dirs)
+            counts = state_db.runtime_status_counts(ctx.run_id)["backup"]
+            self.assertEqual(counts.get("pending", 0), n_dirs)
+            self.assertEqual(counts.get("running", 0), 0)
+
+    def test_stale_claim_is_recoverable(self):
+        """A claimed-but-crashed job is recovered to pending on resume."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_db, ctx, state_path = self._new_run_with_dirs(tmpdir, 1)
+            args = self._make_args(
+                str(Path(tmpdir) / "root"), str(Path(tmpdir) / "logs"), state_path
+            )
+            path = state_db.claim_backup_job(ctx.run_id, ctx.controller_id, 1)
+            self.assertIsNotNone(path)
+            # Simulate crash: claim remains 'running' and lease is expired.
+            conn = sqlite3.connect(state_path)
+            conn.execute("UPDATE runs SET controller_lease_expires_at='1970-01-01T00:00:00Z'")
+            conn.commit()
+            conn.close()
+            resumed = bc.PersistentStateDB(state_path).resume_run(
+                str(Path(tmpdir) / "root"),
+                os.stat(Path(tmpdir) / "root").st_dev,
+                bc.build_coverage_config(
+                    str(Path(tmpdir) / "root"),
+                    os.stat(Path(tmpdir) / "root").st_dev,
+                    frozenset(),
+                    args,
+                ),
+            )
+            self.assertEqual(resumed.recovered_backup_claims, 1)
+            conn = sqlite3.connect(state_path)
+            status = conn.execute(
+                "SELECT backup_status FROM directories WHERE run_id=? AND path_display=?",
+                (ctx.run_id, path),
+            ).fetchone()[0]
+            conn.close()
+            self.assertEqual(status, "pending")
+
+
+class _DummyConn:
+    def rollback(self):
+        pass
+
+    def close(self):
+        pass
+
+
+class _FlakyDB:
+    """Minimal DB stand-in whose op fails with a lock error, then succeeds."""
+
+    def __init__(self, fail_times: int):
+        self._fail_times = fail_times
+        self.calls = 0
+        self._connection = None
+
+    def _get_writer_connection(self):
+        self._connection = _DummyConn()
+        return self._connection
+
+    def _connect(self):
+        return self._connection
+
+    def flaky(self):
+        self.calls += 1
+        if self.calls <= self._fail_times:
+            raise sqlite3.OperationalError("database is locked")
+        return "ok"
+
+
+class TestDBCoordinatorRetry(unittest.TestCase):
+    def test_retry_on_busy_eventually_succeeds(self):
+        db = _FlakyDB(fail_times=3)
+        coordinator = bc.DBCoordinator(db)
+        coordinator.start()
+        try:
+            result = coordinator.submit_critical("flaky")
+        finally:
+            coordinator.shutdown()
+        self.assertEqual(result, "ok")
+        self.assertEqual(db.calls, 4)  # 3 failures + 1 success
+
+    def test_non_lock_error_is_not_retried(self):
+        class _BoomDB(_FlakyDB):
+            def flaky(self):
+                self.calls += 1
+                raise sqlite3.OperationalError("no such table: nope")
+
+        db = _BoomDB(fail_times=0)
+        coordinator = bc.DBCoordinator(db)
+        coordinator.start()
+        try:
+            with self.assertRaises(sqlite3.OperationalError):
+                coordinator.submit_critical("flaky")
+        finally:
+            coordinator.shutdown()
+        self.assertEqual(db.calls, 1)  # surfaced immediately, no retry
+
+    def test_external_write_lock_is_waited_out(self):
+        """A held external write lock is tolerated; the write still commits."""
+        with tempfile.TemporaryDirectory() as tmpdir:
+            base = _CoordinatorTestBase()
+            state_db, ctx, state_path = base._new_run_with_dirs(tmpdir, 1)
+            coordinator = bc.DBCoordinator(state_db)
+            coordinator.start()
+
+            blocker = sqlite3.connect(state_path, timeout=30)
+            blocker.execute("PRAGMA busy_timeout=30000")
+            blocker.execute("BEGIN IMMEDIATE")
+            blocker.execute(
+                "UPDATE runs SET updated_at='x' WHERE id=?", (ctx.run_id,)
+            )
+
+            result_holder: list[object] = []
+
+            def _do_claim():
+                result_holder.append(
+                    coordinator.submit_critical(
+                        "claim_backup_job", ctx.run_id, ctx.controller_id, 1
+                    )
+                )
+
+            t = threading.Thread(target=_do_claim)
+            t.start()
+            time.sleep(0.5)  # coordinator is blocked on the external lock
+            self.assertFalse(result_holder, "claim committed while lock was held")
+            blocker.rollback()
+            blocker.close()
+            t.join(timeout=30)
+            coordinator.shutdown()
+            self.assertTrue(result_holder)
+            self.assertIsNotNone(result_holder[0])
+
+
+class TestOutputReaderCallbackSafety(unittest.TestCase):
+    def _run_supervised(self, child_script, callback):
+        worker_states = bc.WorkerStates(1)
+        global_stats = bc.GlobalDsmcStats()
+        stop_event = threading.Event()
+        with tempfile.TemporaryDirectory() as tmpdir:
+            logger = bc.SafeLogger(Path(tmpdir) / "c.log", echo=False)
+            buf = bytearray()
+
+            class _W:
+                def write(self, d):
+                    buf.extend(d)
+
+            worker_states.set_directory(1, 1, "/x")
+            rc, stats = bc.run_dsmc_supervised(
+                command=[sys.executable, "-c", child_script],
+                env=os.environ.copy(),
+                output_file=_W(),
+                worker_number=1,
+                worker_states=worker_states,
+                global_stats=global_stats,
+                logger=logger,
+                worker_name="worker-01",
+                dsmc_timeout=30,
+                dsmc_idle_timeout=0,
+                stop_event=stop_event,
+                child_output_callback=callback,
+            )
+        return rc, stats, bytes(buf)
+
+    def test_advisory_callback_failure_is_non_fatal(self):
+        def _boom(_ts):
+            raise RuntimeError("advisory callback failure")
+
+        rc, stats, _ = self._run_supervised(
+            "print('Total number of objects inspected:   3');"
+            "print('Elapsed processing time:   00:00:01')",
+            _boom,
+        )
+        self.assertEqual(rc, 0)
+        self.assertEqual(stats.objects_inspected, 3)
+
+    def test_reader_drains_large_output_with_failing_callback(self):
+        def _boom(_ts):
+            raise RuntimeError("advisory callback failure")
+
+        child = (
+            "import sys\n"
+            "for i in range(20000):\n"
+            "    sys.stdout.write(f'noise line {i} filler filler filler\\n')\n"
+            "print('Total number of objects inspected:   7')\n"
+            "print('Elapsed processing time:   00:00:02')\n"
+        )
+        rc, stats, buf = self._run_supervised(child, _boom)
+        self.assertEqual(rc, 0)
+        self.assertEqual(stats.objects_inspected, 7)
+        self.assertGreater(len(buf), 100_000, "reader did not drain the full output")
+
+
+class _RecordingCoordinator:
+    def __init__(self):
+        self.advisory: list[tuple] = []
+
+    def submit_advisory(self, op, *args, **kwargs):
+        self.advisory.append((op, args, kwargs))
+
+    def submit_critical(self, op, *args, **kwargs):
+        raise AssertionError("submit_critical should not be called here")
+
+    def is_alive(self):
+        return True
+
+    def is_fatal(self):
+        return False
+
+
+class TestHeartbeatRateLimit(unittest.TestCase):
+    def test_directory_heartbeat_rate_limited(self):
+        coord = _RecordingCoordinator()
+        run_ctx = bc.RunContext(
+            run_id="r", execution_id="e", controller_id="c", state_db_path="p", resumed=False
+        )
+        _started, on_output = bc.make_directory_dsmc_callbacks(coord, run_ctx, "/some/path")
+        # Timestamps mimic time.monotonic() (a large, growing clock).
+        base = 1000.0
+        # First output emits; further output within the window does not.
+        on_output(base + 0.0)
+        on_output(base + 1.0)
+        on_output(base + 2.0)
+        on_output(base + 4.9)
+        heartbeats = [c for c in coord.advisory if c[0] == "touch_directory_attempt"]
+        self.assertEqual(len(heartbeats), 1)
+        # Crossing the interval boundary emits a second heartbeat.
+        on_output(base + 5.0)
+        on_output(base + 6.0)
+        heartbeats = [c for c in coord.advisory if c[0] == "touch_directory_attempt"]
+        self.assertEqual(len(heartbeats), 2)
+
+    def test_root_chunk_heartbeat_rate_limited(self):
+        coord = _RecordingCoordinator()
+        _started, on_output = bc.make_root_chunk_dsmc_callbacks(coord, 42)
+        base = 1000.0
+        for ts in (0.0, 1.0, 2.0, 3.0, 4.0):
+            on_output(base + ts)
+        heartbeats = [c for c in coord.advisory if c[0] == "touch_root_chunk"]
+        self.assertEqual(len(heartbeats), 1)
+        on_output(base + 10.0)
+        heartbeats = [c for c in coord.advisory if c[0] == "touch_root_chunk"]
+        self.assertEqual(len(heartbeats), 2)
+
+
+class _RaisingCoordinator:
+    def submit_critical(self, op, *args, **kwargs):
+        raise RuntimeError("coordinator boom")
+
+    def submit_advisory(self, *args, **kwargs):
+        pass
+
+    def is_alive(self):
+        return True
+
+    def is_fatal(self):
+        return False
+
+
+class TestWorkerExceptionShowsError(unittest.TestCase):
+    def test_worker_exception_sets_error_state(self):
+        import argparse
+        import types
+
+        with tempfile.TemporaryDirectory() as tmpdir:
+            args = argparse.Namespace(
+                log_dir=tmpdir,
+                dsmc="/bin/true",
+                dsmc_option=[],
+                dsmc_timeout=0,
+                dsmc_idle_timeout=0,
+                resourceutilization=2,
+                batch_size=1,
+            )
+            run_ctx = types.SimpleNamespace(run_id="r", controller_id="c", execution_id="e")
+            producer_done = threading.Event()
+            stop_event = threading.Event()
+            counters = bc.Counters()
+            worker_states = bc.WorkerStates(1)
+            global_stats = bc.GlobalDsmcStats()
+            logger = bc.SafeLogger(Path(tmpdir) / "c.log", echo=False)
+            failed_log = Path(tmpdir) / "failed.tsv"
+            failed_log.write_text("return_code\tdirectory\tnotes\n")
+            failed_logger = bc.SafeAppender(failed_log)
+
+            # Suppress the re-raised exception traceback in the worker thread.
+            old_hook = threading.excepthook
+            threading.excepthook = lambda a: None
+            try:
+                t = threading.Thread(
+                    target=bc.persistent_worker,
+                    args=(
+                        1,
+                        args,
+                        bc.PersistentStateDB(str(Path(tmpdir) / "unused.sqlite3")),
+                        _RaisingCoordinator(),
+                        run_ctx,
+                        producer_done,
+                        stop_event,
+                        counters,
+                        worker_states,
+                        global_stats,
+                        logger,
+                        failed_logger,
+                    ),
+                )
+                t.start()
+                t.join(timeout=15)
+            finally:
+                threading.excepthook = old_hook
+
+            self.assertFalse(t.is_alive())
+            self.assertEqual(worker_states.get_status(1), "error")
+            self.assertTrue(stop_event.is_set(), "worker should request orderly shutdown")
+
+
+class _FakeMetricsQueue:
+    def __init__(self, size=5, maxsize=100):
+        self._size = size
+        self.maxsize = maxsize
+
+    def qsize(self):
+        return self._size
+
+
+class TestDashboardDurableCounts(unittest.TestCase):
+    def test_dashboard_shows_backlog_not_queue_full(self):
+        counters = bc.Counters()
+        worker_states = bc.WorkerStates(1)
+        global_stats = bc.GlobalDsmcStats()
+        producer_done = threading.Event()
+        stop_event = threading.Event()
+
+        def _provider():
+            return {
+                "mode": "NEW",
+                "run_id": "abcdef1234567890",
+                "reused_completed": 0,
+                "recovered_scan_claims": 0,
+                "recovered_backup_claims": 0,
+                "recovered_root_chunk_claims": 0,
+                "scan_counts": {"pending": 3, "scanning": 1, "scanned": 10},
+                "backup_counts": {
+                    "pending": 7,
+                    "running": 2,
+                    "succeeded": 5,
+                    "failed": 0,
+                    "timed_out": 0,
+                },
+            }
+
+        dash = bc.Dashboard(
+            counters=counters,
+            worker_states=worker_states,
+            global_stats=global_stats,
+            work_queue=_FakeMetricsQueue(size=5, maxsize=100),
+            producer_done=producer_done,
+            stop_event=stop_event,
+            refresh_seconds=1.0,
+            state_snapshot_provider=_provider,
+        )
+        captured = io.StringIO()
+        with contextlib.redirect_stdout(captured):
+            dash._render()
+        out = captured.getvalue()
+        self.assertIn("Backlog: backup pending=7", out)
+        self.assertIn("running=2", out)
+        self.assertNotIn("[FULL]", out)
+        self.assertNotIn("q=5/100", out)
+
+    def test_dashboard_legacy_mode_still_shows_queue(self):
+        counters = bc.Counters()
+        worker_states = bc.WorkerStates(1)
+        global_stats = bc.GlobalDsmcStats()
+        producer_done = threading.Event()
+        stop_event = threading.Event()
+        dash = bc.Dashboard(
+            counters=counters,
+            worker_states=worker_states,
+            global_stats=global_stats,
+            work_queue=_FakeMetricsQueue(size=100, maxsize=100),
+            producer_done=producer_done,
+            stop_event=stop_event,
+            refresh_seconds=1.0,
+            state_snapshot_provider=None,
+        )
+        captured = io.StringIO()
+        with contextlib.redirect_stdout(captured):
+            dash._render()
+        out = captured.getvalue()
+        self.assertIn("q=100/100", out)
+        self.assertIn("[FULL]", out)
