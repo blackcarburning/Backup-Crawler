@@ -2993,7 +2993,7 @@ class TestWorkerExceptionShowsError(unittest.TestCase):
 
             # Suppress the re-raised exception traceback in the worker thread.
             old_hook = threading.excepthook
-            threading.excepthook = lambda a: None
+            threading.excepthook = lambda _args: None
             try:
                 t = threading.Thread(
                     target=bc.persistent_worker,

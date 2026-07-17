@@ -123,6 +123,11 @@ CONTROLLER_HEARTBEAT_SECS = 5
 # every chunk of output.
 HEARTBEAT_INTERVAL = 5.0
 
+# Base delay (seconds) for the first retry when the DB coordinator encounters a
+# transient SQLite lock error.  The actual delay is ``RETRY_BASE_DELAY_SECS *
+# 2**(attempt-1)``, capped at 1 second, giving a bounded backoff sequence.
+RETRY_BASE_DELAY_SECS = 0.05
+
 _UNIT_MULTIPLIERS: dict[str, int] = {
     "B": 1,
     "KB": 1024,
@@ -2530,7 +2535,7 @@ class DBCoordinator:
                 attempt += 1
                 if attempt > self.MAX_LOCK_RETRIES:
                     raise
-                time.sleep(min(0.05 * (2 ** (attempt - 1)), 1.0))
+                time.sleep(min(RETRY_BASE_DELAY_SECS * (2 ** (attempt - 1)), 1.0))
 
 
 class ControllerHeartbeat(threading.Thread):
