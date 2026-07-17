@@ -1411,6 +1411,8 @@ class TestTruncatePath(unittest.TestCase):
     def test_tail_basename_preserved(self):
         path = "/home/user/node_modules/parse5/lib/extensions"
         result = bc.Dashboard.truncate_path(path, 30)
+        # Truncation must have occurred and the suffix must be prepended.
+        self.assertTrue(result.startswith("..."))
         # The basename and surrounding components must appear at the end.
         self.assertTrue(result.endswith("parse5/lib/extensions"))
 
@@ -1503,11 +1505,26 @@ class TestDashboardRowWidth(unittest.TestCase):
         )
 
     def _static_width(self) -> int:
-        return 11 + (self._BAR_WIDTH + 3) + 8 + (self._STATUS_WIDTH + 1) + 6 + 10 + 11 + 13 + 18 + 7
+        return (
+            11                          # label (10) + space
+            + (self._BAR_WIDTH + 3)     # "[" + bar + "]" + space
+            + 8                         # pos (7) + space
+            + (self._STATUS_WIDTH + 1)  # status + space
+            + 6                         # b_str (5) + space
+            + 10                        # pid_str (9) + space
+            + 11                        # "rt:" (3) + time_str (7) + space
+            + 13                        # "idle:" (5) + idle_str (7) + space
+            + 18                        # stats_str (17) + space
+            + 7                         # rc_str (6) + space
+        )
+
+    def _path_width(self, terminal_width: int) -> int:
+        """Mirror Dashboard._render's path_width formula."""
+        return max(8, min(self._MAX_PATH, terminal_width - self._static_width()))
 
     def _row_for(self, path: str, terminal_width: int) -> str:
         """Build a full worker row as Dashboard._render would, then clip it."""
-        path_width = max(8, min(self._MAX_PATH, terminal_width - self._static_width()))
+        path_width = self._path_width(terminal_width)
         bar = "[" + "#" * self._BAR_WIDTH + "]"
         prefix = self._build_prefix(
             label="W01",
@@ -1529,7 +1546,7 @@ class TestDashboardRowWidth(unittest.TestCase):
 
     def _root_row_for(self, path: str, terminal_width: int) -> str:
         """Build a ROOT_FILES row as Dashboard._render would, then clip it."""
-        path_width = max(8, min(self._MAX_PATH, terminal_width - self._static_width()))
+        path_width = self._path_width(terminal_width)
         bar = " " * (self._BAR_WIDTH + 2)
         prefix = self._build_prefix(
             label="ROOT_FILES",
@@ -1591,8 +1608,7 @@ class TestDashboardRowWidth(unittest.TestCase):
         # On a 200-col terminal, path_width = min(MAX_PATH_DISPLAY, 200-static_width) = 60.
         # A short path under 60 chars must pass through unchanged.
         short_path = "/home/user"
-        path_width = max(8, min(self._MAX_PATH, 200 - self._static_width()))
-        result = bc.Dashboard.truncate_path(short_path, path_width)
+        result = bc.Dashboard.truncate_path(short_path, self._path_width(200))
         self.assertEqual(result, short_path,
             "Short path should not be truncated")
 
@@ -1600,8 +1616,7 @@ class TestDashboardRowWidth(unittest.TestCase):
         long_path = "/" + "a/b/c/" * 20
         # Use a wide terminal (200 cols) so path_width = MAX_PATH_DISPLAY = 60;
         # with a path of 120 chars it will definitely be truncated.
-        path_width = max(8, min(self._MAX_PATH, 200 - self._static_width()))
-        result = bc.Dashboard.truncate_path(long_path, path_width)
+        result = bc.Dashboard.truncate_path(long_path, self._path_width(200))
         self.assertTrue(result.startswith("..."),
             f"Truncated path should start with '...', got: {result!r}")
 
