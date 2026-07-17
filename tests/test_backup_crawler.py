@@ -7,8 +7,11 @@ Run with:  python3 -m pytest tests/
 
 from __future__ import annotations
 
+import contextlib
+import io
 import os
 import queue
+import sqlite3
 import subprocess
 import sys
 import tempfile
@@ -2079,3 +2082,486 @@ class TestFormatFinalSummary(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPersistentStateDB(unittest.TestCase):
+    def _make_args(
+        self,
+        mountpoint: str,
+        log_dir: str,
+        state_db: str,
+        *,
+        streams: int = 1,
+        batch_size: int = 2,
+        exclude_path: list[str] | None = None,
+    ):
+        import argparse
+
+        return argparse.Namespace(
+            mountpoint=mountpoint,
+            streams=streams,
+            batch_size=batch_size,
+            queue_size=100,
+            dsmc=sys.executable,
+            dsmc_option=[],
+            dsmc_timeout=0,
+            dsmc_idle_timeout=0,
+            resourceutilization=2,
+            log_dir=log_dir,
+            state_db=state_db,
+            progress_seconds=1,
+            dashboard_refresh_seconds=1.0,
+            shutdown_wait_seconds=1,
+            no_dashboard=True,
+            dry_run=False,
+            exclude_path=exclude_path or [],
+            resume=False,
+            new_run=False,
+            status=False,
+            streams_positional=None,
+        )
+
+    def _expire_lease(self, state_db_path: str):
+        conn = sqlite3.connect(state_db_path)
+        conn.execute(
+            "UPDATE runs SET controller_lease_expires_at='1970-01-01T00:00:00Z'"
+        )
+        conn.commit()
+        conn.close()
+
+    def test_schema_creation_and_reopen(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "root"
+            log_dir = Path(tmpdir) / "logs"
+            state_path = Path(tmpdir) / "state.sqlite3"
+            root.mkdir()
+            args = self._make_args(str(root), str(log_dir), str(state_path))
+            state_db = bc.PersistentStateDB(str(state_path))
+            ctx = state_db.create_new_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+                bc.build_operational_config(args),
+                False,
+            )
+            self.assertTrue(state_path.exists())
+            conn = sqlite3.connect(state_path)
+            tables = {
+                row[0]
+                for row in conn.execute(
+                    "SELECT name FROM sqlite_master WHERE type='table'"
+                )
+            }
+            self.assertIn("runs", tables)
+            self.assertIn("directories", tables)
+            self.assertIn("attempts", tables)
+            self.assertIn("root_file_chunks", tables)
+            conn.close()
+            state_db.close()
+            reopened = bc.PersistentStateDB(str(state_path))
+            report = reopened.status_report()
+            self.assertIn(ctx.run_id, report)
+            self.assertIn(str(root), report)
+
+    @unittest.skipIf(sys.platform == "win32", "surrogateescape path semantics differ on Windows")
+    def test_non_utf8_path_storage_round_trips(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "root"
+            log_dir = Path(tmpdir) / "logs"
+            state_path = Path(tmpdir) / "state.sqlite3"
+            root.mkdir()
+            bad_dir_bytes = os.path.join(os.fsencode(root), b"bad-\xff")
+            os.mkdir(bad_dir_bytes)
+            bad_dir = os.fsdecode(bad_dir_bytes)
+            args = self._make_args(str(root), str(log_dir), str(state_path))
+            state_db = bc.PersistentStateDB(str(state_path))
+            ctx = state_db.create_new_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+                bc.build_operational_config(args),
+                False,
+            )
+            inserted = state_db.insert_directory_if_absent(
+                ctx.run_id,
+                bad_dir,
+                str(root),
+                os.stat(bad_dir).st_dev,
+                "pending",
+                "pending",
+            )
+            self.assertTrue(inserted)
+            conn = sqlite3.connect(state_path)
+            row = conn.execute(
+                "SELECT path_bytes FROM directories WHERE run_id=? AND path_display LIKE ?",
+                (ctx.run_id, "%bad%"),
+            ).fetchone()
+            conn.close()
+            self.assertEqual(bytes(row[0]), os.fsencode(bad_dir))
+            self.assertEqual(bc.decode_path_from_db(row[0]), bad_dir)
+
+    def test_root_insertion_and_root_files_seed(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "state.sqlite3"
+            log_dir = Path(tmpdir) / "logs"
+            args = self._make_args(os.sep, str(log_dir), str(state_path))
+            state_db = bc.PersistentStateDB(str(state_path))
+            ctx = state_db.create_new_run(
+                os.sep,
+                os.stat(os.sep).st_dev,
+                bc.build_coverage_config(os.sep, os.stat(os.sep).st_dev, frozenset(), args),
+                bc.build_operational_config(args),
+                True,
+            )
+            conn = sqlite3.connect(state_path)
+            dir_row = conn.execute(
+                "SELECT scan_status, backup_status FROM directories WHERE run_id=?",
+                (ctx.run_id,),
+            ).fetchone()
+            root_state = conn.execute(
+                "SELECT manifest_status FROM root_files_state WHERE run_id=?",
+                (ctx.run_id,),
+            ).fetchone()
+            conn.close()
+            self.assertEqual(dir_row[0], "pending")
+            self.assertEqual(dir_row[1], "skipped_root")
+            self.assertEqual(root_state[0], "pending")
+
+    def test_finish_scan_inserts_children_and_marks_parent_scanned(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "root"
+            root.mkdir()
+            state_path = Path(tmpdir) / "state.sqlite3"
+            log_dir = Path(tmpdir) / "logs"
+            args = self._make_args(str(root), str(log_dir), str(state_path))
+            state_db = bc.PersistentStateDB(str(state_path))
+            ctx = state_db.create_new_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+                bc.build_operational_config(args),
+                False,
+            )
+            claimed = state_db.claim_next_scan(ctx.run_id, ctx.controller_id)
+            self.assertEqual(claimed, str(root))
+            child = str(root / "child")
+            result = state_db.finish_scan(
+                ctx.run_id,
+                str(root),
+                [(child, os.stat(root).st_dev)],
+                [],
+                [],
+                [],
+            )
+            self.assertEqual(result["eligible"], 1)
+            conn = sqlite3.connect(state_path)
+            rows = conn.execute(
+                "SELECT path_display, scan_status, backup_status FROM directories WHERE run_id=? ORDER BY path_display",
+                (ctx.run_id,),
+            ).fetchall()
+            conn.close()
+            self.assertEqual(rows[0][1], "scanned")
+            self.assertEqual(rows[1][0], child)
+            self.assertEqual(rows[1][1], "pending")
+            self.assertEqual(rows[1][2], "pending")
+
+    def test_stale_scanning_recovery_and_idempotent_rescan(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "root"
+            root.mkdir()
+            state_path = Path(tmpdir) / "state.sqlite3"
+            log_dir = Path(tmpdir) / "logs"
+            args = self._make_args(str(root), str(log_dir), str(state_path))
+            state_db = bc.PersistentStateDB(str(state_path))
+            ctx = state_db.create_new_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+                bc.build_operational_config(args),
+                False,
+            )
+            self.assertEqual(state_db.claim_next_scan(ctx.run_id, ctx.controller_id), str(root))
+            self._expire_lease(str(state_path))
+            resumed = bc.PersistentStateDB(str(state_path)).resume_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+            )
+            self.assertEqual(resumed.recovered_scan_claims, 1)
+            claimed = bc.PersistentStateDB(str(state_path)).claim_next_scan(
+                resumed.run_id, resumed.controller_id
+            )
+            self.assertEqual(claimed, str(root))
+            child = str(root / "child")
+            db2 = bc.PersistentStateDB(str(state_path))
+            first = db2.finish_scan(resumed.run_id, str(root), [(child, os.stat(root).st_dev)], [], [], [])
+            self.assertEqual(first["eligible"], 1)
+            conn = sqlite3.connect(state_path)
+            conn.execute(
+                "UPDATE directories SET scan_status='pending' WHERE run_id=? AND path_display=?",
+                (resumed.run_id, str(root)),
+            )
+            conn.commit()
+            conn.close()
+            again = db2.claim_next_scan(resumed.run_id, resumed.controller_id)
+            self.assertEqual(again, str(root))
+            second = db2.finish_scan(resumed.run_id, str(root), [(child, os.stat(root).st_dev)], [], [], [])
+            self.assertEqual(second["eligible"], 0)
+
+    def test_atomic_backup_claims_do_not_overlap(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "root"
+            root.mkdir()
+            state_path = Path(tmpdir) / "state.sqlite3"
+            log_dir = Path(tmpdir) / "logs"
+            args = self._make_args(str(root), str(log_dir), str(state_path), batch_size=2)
+            state_db = bc.PersistentStateDB(str(state_path))
+            ctx = state_db.create_new_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+                bc.build_operational_config(args),
+                False,
+            )
+            for idx in range(4):
+                state_db.insert_directory_if_absent(
+                    ctx.run_id,
+                    str(root / f"d{idx}"),
+                    str(root),
+                    os.stat(root).st_dev,
+                    "scanned",
+                    "pending",
+                )
+            claimed: list[list[str]] = []
+            lock = threading.Lock()
+
+            def _claim(worker_no: int):
+                db = bc.PersistentStateDB(str(state_path))
+                batch = db.claim_backup_batch(ctx.run_id, ctx.controller_id, worker_no, 2)
+                with lock:
+                    claimed.append(batch)
+
+            threads = [threading.Thread(target=_claim, args=(1,)), threading.Thread(target=_claim, args=(2,))]
+            for t in threads:
+                t.start()
+            for t in threads:
+                t.join()
+            flattened = [item for batch in claimed for item in batch]
+            self.assertEqual(len(flattened), 4)
+            self.assertEqual(len(set(flattened)), 4)
+
+    def test_stale_running_backup_recovery_marks_attempt_interrupted(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "root"
+            root.mkdir()
+            state_path = Path(tmpdir) / "state.sqlite3"
+            log_dir = Path(tmpdir) / "logs"
+            args = self._make_args(str(root), str(log_dir), str(state_path))
+            state_db = bc.PersistentStateDB(str(state_path))
+            ctx = state_db.create_new_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+                bc.build_operational_config(args),
+                False,
+            )
+            conn = sqlite3.connect(state_path)
+            conn.execute(
+                "UPDATE directories SET backup_status='succeeded', scan_status='scanned' WHERE run_id=? AND path_display=?",
+                (ctx.run_id, str(root)),
+            )
+            conn.commit()
+            conn.close()
+            work = str(root / "work")
+            state_db.insert_directory_if_absent(ctx.run_id, work, str(root), os.stat(root).st_dev, "scanned", "pending")
+            claimed = state_db.claim_backup_batch(ctx.run_id, ctx.controller_id, 1, 1)
+            self.assertEqual(claimed, [work])
+            state_db.start_directory_attempt(ctx.run_id, ctx.execution_id, work, 1, "worker-01")
+            self._expire_lease(str(state_path))
+            resumed = bc.PersistentStateDB(str(state_path)).resume_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+            )
+            self.assertEqual(resumed.recovered_backup_claims, 1)
+            conn = sqlite3.connect(state_path)
+            row = conn.execute(
+                "SELECT backup_status FROM directories WHERE run_id=? AND path_display=?",
+                (ctx.run_id, work),
+            ).fetchone()
+            attempt = conn.execute(
+                "SELECT outcome FROM attempts WHERE run_id=? ORDER BY id DESC LIMIT 1",
+                (ctx.run_id,),
+            ).fetchone()
+            conn.close()
+            self.assertEqual(row[0], "pending")
+            self.assertEqual(attempt[0], "interrupted")
+
+    def test_config_compatibility_rejects_exclusion_change_but_allows_worker_change(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "root"
+            root.mkdir()
+            state_path = Path(tmpdir) / "state.sqlite3"
+            log_dir = Path(tmpdir) / "logs"
+            args1 = self._make_args(str(root), str(log_dir), str(state_path), streams=1, batch_size=2)
+            state_db = bc.PersistentStateDB(str(state_path))
+            ctx = state_db.create_new_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args1),
+                bc.build_operational_config(args1),
+                False,
+            )
+            self._expire_lease(str(state_path))
+            args2 = self._make_args(str(root), str(log_dir), str(state_path), streams=4, batch_size=9)
+            resumed = bc.PersistentStateDB(str(state_path)).resume_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args2),
+            )
+            self.assertTrue(resumed.resumed)
+            self._expire_lease(str(state_path))
+            args3 = self._make_args(str(root), str(log_dir), str(state_path), exclude_path=[str(root / "skip")])
+            with self.assertRaises(RuntimeError):
+                bc.PersistentStateDB(str(state_path)).resume_run(
+                    str(root),
+                    os.stat(root).st_dev,
+                    bc.build_coverage_config(
+                        str(root), os.stat(root).st_dev, frozenset(args3.exclude_path), args3
+                    ),
+                )
+
+    def test_live_controller_rejected_then_stale_controller_recovers(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "root"
+            root.mkdir()
+            state_path = Path(tmpdir) / "state.sqlite3"
+            log_dir = Path(tmpdir) / "logs"
+            args = self._make_args(str(root), str(log_dir), str(state_path))
+            state_db = bc.PersistentStateDB(str(state_path))
+            state_db.create_new_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+                bc.build_operational_config(args),
+                False,
+            )
+            with self.assertRaises(RuntimeError):
+                bc.PersistentStateDB(str(state_path)).resume_run(
+                    str(root),
+                    os.stat(root).st_dev,
+                    bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+                )
+            self._expire_lease(str(state_path))
+            resumed = bc.PersistentStateDB(str(state_path)).resume_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+            )
+            self.assertTrue(resumed.resumed)
+
+    def test_root_files_manifest_and_chunks_persist(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            state_path = Path(tmpdir) / "state.sqlite3"
+            log_dir = Path(tmpdir) / "logs"
+            args = self._make_args(os.sep, str(log_dir), str(state_path))
+            state_db = bc.PersistentStateDB(str(state_path))
+            ctx = state_db.create_new_run(
+                os.sep,
+                os.stat(os.sep).st_dev,
+                bc.build_coverage_config(os.sep, os.stat(os.sep).st_dev, frozenset(), args),
+                bc.build_operational_config(args),
+                True,
+            )
+            files = ["/alpha", "/beta"]
+            state_db.store_root_manifest(ctx.run_id, files)
+            manifest = state_db.root_manifest_row(ctx.run_id)
+            self.assertEqual(int(manifest["total_files"]), 2)
+            chunk = state_db.claim_root_chunk(ctx.run_id, ctx.controller_id)
+            self.assertIsNotNone(chunk)
+            members = state_db.root_chunk_files(int(chunk["id"]))
+            self.assertEqual(members, files)
+            self.assertNotIn(os.sep, members)
+
+
+class TestPersistentMain(unittest.TestCase):
+    def _fake_dsmc(self, tmpdir: str) -> str:
+        script = Path(tmpdir) / "fake_dsmc.py"
+        script.write_text(
+            "#!/usr/bin/env python3\n"
+            "import sys\n"
+            "print('Total number of objects inspected:   1')\n"
+            "print('Total number of objects backed up:   1')\n"
+            "print('Total number of bytes inspected:   1.00 KB')\n"
+            "print('Total number of bytes transferred:   1.00 KB')\n"
+            "print('Elapsed processing time:   00:00:01')\n"
+            "raise SystemExit(0)\n",
+            encoding="utf-8",
+        )
+        script.chmod(0o755)
+        return str(script)
+
+    def _run_main(self, argv: list[str]) -> tuple[int, str, str]:
+        old = sys.argv
+        stdout = io.StringIO()
+        stderr = io.StringIO()
+        try:
+            sys.argv = ["backup_crawler.py", *argv]
+            with contextlib.redirect_stdout(stdout), contextlib.redirect_stderr(stderr):
+                rc = bc.main()
+        finally:
+            sys.argv = old
+        return rc, stdout.getvalue(), stderr.getvalue()
+
+    def test_status_is_read_only(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "root"
+            log_dir = Path(tmpdir) / "logs"
+            state = Path(tmpdir) / "state.sqlite3"
+            root.mkdir()
+            (root / "a").mkdir()
+            fake = self._fake_dsmc(tmpdir)
+            rc, _out, _err = self._run_main([
+                str(root), "1", "--new-run", "--no-dashboard", "--progress-seconds", "1",
+                "--log-dir", str(log_dir), "--state-db", str(state), "--dsmc", fake,
+            ])
+            self.assertEqual(rc, 0)
+            conn = sqlite3.connect(state)
+            before = conn.execute("SELECT updated_at FROM runs").fetchone()[0]
+            conn.close()
+            rc, out, err = self._run_main(["--status", "--state-db", str(state)])
+            self.assertEqual(rc, 0)
+            self.assertIn("State DB:", out)
+            conn = sqlite3.connect(state)
+            after = conn.execute("SELECT updated_at FROM runs").fetchone()[0]
+            conn.close()
+            self.assertEqual(before, after)
+            self.assertEqual(err, "")
+
+    def test_completed_jobs_not_rerun_on_resume(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "root"
+            log_dir = Path(tmpdir) / "logs"
+            state = Path(tmpdir) / "state.sqlite3"
+            root.mkdir()
+            (root / "a").mkdir()
+            fake = self._fake_dsmc(tmpdir)
+            rc, out1, _ = self._run_main([
+                str(root), "1", "--new-run", "--no-dashboard", "--progress-seconds", "1",
+                "--log-dir", str(log_dir), "--state-db", str(state), "--dsmc", fake,
+            ])
+            self.assertEqual(rc, 0)
+            conn = sqlite3.connect(state)
+            attempts_before = conn.execute("SELECT COUNT(*) FROM attempts").fetchone()[0]
+            conn.close()
+            rc, out2, _ = self._run_main([
+                str(root), "3", "--resume", "--no-dashboard", "--progress-seconds", "1",
+                "--log-dir", str(log_dir), "--state-db", str(state), "--dsmc", fake,
+            ])
+            self.assertEqual(rc, 0)
+            conn = sqlite3.connect(state)
+            attempts_after = conn.execute("SELECT COUNT(*) FROM attempts").fetchone()[0]
+            conn.close()
+            self.assertEqual(attempts_before, attempts_after)
+            self.assertIn("Run mode:  RESUMED", out2)
+            self.assertIn("Reused completed work:", out2)
