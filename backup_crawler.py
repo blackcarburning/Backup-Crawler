@@ -1483,7 +1483,7 @@ class PersistentStateDB:
         elif int(row[0]) != SQLITE_SCHEMA_VERSION:
             raise RuntimeError(
                 f"Unsupported state DB schema version {row[0]} at {self.path}. "
-                f"Expected {SQLITE_SCHEMA_VERSION}. Automatic schema migration is not supported. To preserve the old DB, copy it aside manually before running --new-run, which archives any existing DB to a timestamped .bak file and creates a fresh state DB."
+                f"Expected {SQLITE_SCHEMA_VERSION}. Automatic schema migration is not supported. To preserve the old DB, copy it aside manually before changing anything. If you want to continue with a fresh database, run with --new-run; that archives any existing DB to a timestamped .bak file and creates a new state DB."
             )
         conn.commit()
         if os.path.exists(self.path):
@@ -2976,6 +2976,7 @@ def run_dsmc_supervised(
 
     # Reached only on timeout or stop
     is_idle_timeout = timed_out_reason is not None and "idle" in timed_out_reason
+    assert timed_out_reason is not None, "timed_out_reason must be set before timeout handling"
     if is_idle_timeout:
         synthetic_rc = IDLE_TIMEOUT_RC
     elif timed_out_reason == "stop requested":
@@ -3580,7 +3581,7 @@ def parse_args() -> argparse.Namespace:
         ),
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    parser.add_argument("mountpoint", nargs="?", help="Mounted filesystem to process (required unless --status is used)")
+    parser.add_argument("mountpoint", nargs="?", help="Mounted filesystem to process (omit only with --status and an explicit --state-db)")
     parser.add_argument(
         "streams_positional",
         nargs="?",
