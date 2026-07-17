@@ -18,8 +18,12 @@ Design notes
 * Configurable hard (--dsmc-timeout) and idle (--dsmc-idle-timeout) timeouts
   allow safe termination of genuinely stalled processes.  Both default to 0
   (disabled) to avoid interrupting legitimate long-running backups.
-* No SQLite database is used; all state is held in-memory and written to log
-  files under --log-dir.
+* Durable scheduler state is stored in a SQLite database (standard-library
+  ``sqlite3``) so unfinished scan frontier and backup work can be resumed after
+  Ctrl-C, process termination, or host reboot.  The implementation provides
+  at-least-once execution semantics: after an ambiguous crash an already-
+  successful ``dsmc`` invocation may be retried, but eligible directories are
+  not silently omitted.
 
 Special handling of the filesystem root (/)
 -------------------------------------------
@@ -84,7 +88,8 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # Clear Screen
 # ---------------------------------------------------------------------------
-os.system("clear")
+if sys.stdout.isatty() and os.environ.get("TERM"):
+    os.system("clear")
 
 
 # ---------------------------------------------------------------------------
