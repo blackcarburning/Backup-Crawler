@@ -114,7 +114,8 @@ Key options:
 | `--queue-size` | Dashboard/progress queue sizing for pending work display |
 | `--exclude-path PATH` | Exclude a subtree (repeatable) |
 | `--dsmc-timeout SECS` | Hard per-invocation timeout (`0` disables) |
-| `--dsmc-idle-timeout SECS` | No-output timeout (`0` disables) |
+| `--dsmc-idle-timeout SECS` | No-output timeout (`0` disables; default `180`) |
+| `--idle-timeout-retries N` | Automatic retries after idle timeout (default `3`; `0` disables auto-retry) |
 | `--dry-run` | Legacy non-persistent scan/schedule simulation |
 
 Rules:
@@ -124,6 +125,9 @@ Rules:
 - `--status` requires `--state-db PATH`.
 - `--dry-run` cannot be combined with durable state options. Dry-run never marks
   durable state complete.
+- Dashboard `quiet` is a visual state after 60s without output; automatic idle
+  timeout termination occurs at the configured `--dsmc-idle-timeout` threshold
+  (180s by default).
 - If a state DB already exists and neither `--resume` nor `--new-run` is given,
   the crawler stops and asks you to choose explicitly.
 
@@ -159,7 +163,10 @@ refresh interval, and timeout values may change between executions.
      `interrupted`, `skipped_root`, `not_eligible`)
 4. Workers atomically claim pending backup rows in batches and run one
    `dsmc incremental -subdir=no` per directory.
-5. Immutable attempt rows record every real `dsmc` invocation, including
+5. Idle-timeout attempts (`rc=125`) are recorded immutably; if retries remain,
+   the directory is atomically moved back to pending with a durable retry
+   backoff (`retry_not_before`) so resume honors delayed retries.
+6. Immutable attempt rows record every real `dsmc` invocation, including
    retries after stale-claim recovery.
 
 ## Crash and Ctrl-C behavior

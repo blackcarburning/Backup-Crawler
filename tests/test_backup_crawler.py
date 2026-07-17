@@ -473,6 +473,7 @@ class TestDryRunExclusion(unittest.TestCase):
                 dsmc_option=[],
                 dsmc_timeout=0,
                 dsmc_idle_timeout=0,
+                idle_timeout_retries=3,
                 resourceutilization=2,
                 dry_run=True,
             )
@@ -667,6 +668,7 @@ class TestWorkerRepeatedBatches(unittest.TestCase):
                 dsmc_option=[],
                 dsmc_timeout=0,
                 dsmc_idle_timeout=0,
+                idle_timeout_retries=3,
                 resourceutilization=2,
                 batch_size=3,
                 dry_run=True,
@@ -785,6 +787,27 @@ class TestDsmcTimeout(unittest.TestCase):
         )
         self.assertEqual(rc, bc.IDLE_TIMEOUT_RC)
 
+    def test_silent_less_than_idle_timeout_not_killed(self):
+        rc, _ = self._run_with_timeout(
+            dsmc_timeout=0,
+            dsmc_idle_timeout=2.0,
+            child_script="import time; time.sleep(0.5); raise SystemExit(0)",
+        )
+        self.assertEqual(rc, 0)
+
+    def test_output_resets_idle_timer(self):
+        rc, _ = self._run_with_timeout(
+            dsmc_timeout=0,
+            dsmc_idle_timeout=1.2,
+            child_script=(
+                "import time,sys\n"
+                "sys.stdout.write('x'*5000); sys.stdout.flush(); time.sleep(0.7)\n"
+                "sys.stdout.write('y'*5000); sys.stdout.flush(); time.sleep(0.7)\n"
+                "raise SystemExit(0)\n"
+            ),
+        )
+        self.assertEqual(rc, 0)
+
     def test_normal_exit_returns_process_rc(self):
         rc, _ = self._run_with_timeout(
             dsmc_timeout=10,
@@ -833,6 +856,7 @@ class TestTaskDoneReconciliation(unittest.TestCase):
                 dsmc_option=[],
                 dsmc_timeout=0,
                 dsmc_idle_timeout=0,
+                idle_timeout_retries=3,
                 resourceutilization=2,
                 batch_size=5,
                 dry_run=True,
@@ -910,6 +934,21 @@ class TestCliValidation(unittest.TestCase):
         self.assertIsNotNone(args)
         self.assertEqual(args.dsmc_idle_timeout, 120)
 
+    def test_idle_timeout_default_enabled(self):
+        args = self._parse([])
+        self.assertIsNotNone(args)
+        self.assertEqual(args.dsmc_idle_timeout, 180)
+
+    def test_idle_timeout_retries_default(self):
+        args = self._parse([])
+        self.assertIsNotNone(args)
+        self.assertEqual(args.idle_timeout_retries, 3)
+
+    def test_valid_idle_timeout_retries(self):
+        args = self._parse(["--idle-timeout-retries", "2"])
+        self.assertIsNotNone(args)
+        self.assertEqual(args.idle_timeout_retries, 2)
+
     def test_zero_disables_timeout(self):
         args = self._parse(["--dsmc-timeout", "0", "--dsmc-idle-timeout", "0"])
         self.assertIsNotNone(args)
@@ -922,6 +961,10 @@ class TestCliValidation(unittest.TestCase):
 
     def test_negative_dsmc_idle_timeout_rejected(self):
         result = self._parse(["--dsmc-idle-timeout", "-5"])
+        self.assertIsNone(result)
+
+    def test_negative_idle_timeout_retries_rejected(self):
+        result = self._parse(["--idle-timeout-retries", "-1"])
         self.assertIsNone(result)
 
     def test_exclude_path_accepted(self):
@@ -1234,6 +1277,7 @@ class TestRunRootFilesJobDryRun(unittest.TestCase):
             dsmc_option=[],
             dsmc_timeout=0,
             dsmc_idle_timeout=0,
+            idle_timeout_retries=3,
             resourceutilization=2,
             dry_run=True,
         )
@@ -2106,6 +2150,7 @@ class TestPersistentStateDB(unittest.TestCase):
             dsmc_option=[],
             dsmc_timeout=0,
             dsmc_idle_timeout=0,
+            idle_timeout_retries=3,
             resourceutilization=2,
             log_dir=log_dir,
             state_db=state_db,
@@ -2397,6 +2442,205 @@ class TestPersistentStateDB(unittest.TestCase):
             self.assertEqual(row[0], "pending")
             self.assertEqual(attempt[0], "interrupted")
 
+    def test_idle_timeout_is_recorded_then_directory_becomes_delayed_retry(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "root"
+            root.mkdir()
+            state_path = Path(tmpdir) / "state.sqlite3"
+            log_dir = Path(tmpdir) / "logs"
+            args = self._make_args(str(root), str(log_dir), str(state_path))
+            state_db = bc.PersistentStateDB(str(state_path))
+            ctx = state_db.create_new_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+                bc.build_operational_config(args),
+                False,
+            )
+            conn = sqlite3.connect(state_path)
+            conn.execute(
+                "UPDATE directories SET backup_status='succeeded', scan_status='scanned' WHERE run_id=? AND path_display=?",
+                (ctx.run_id, str(root)),
+            )
+            conn.commit()
+            conn.close()
+            work = str(root / "work")
+            state_db.insert_directory_if_absent(ctx.run_id, work, str(root), os.stat(root).st_dev, "scanned", "pending")
+            claimed = state_db.claim_backup_job(ctx.run_id, ctx.controller_id, 1)
+            self.assertEqual(claimed, work)
+            attempt_id = state_db.start_directory_attempt(ctx.run_id, ctx.execution_id, work, 1, "worker-01")
+            meta = state_db.finish_directory_attempt(
+                ctx.run_id,
+                work,
+                attempt_id,
+                "timed_out",
+                bc.IDLE_TIMEOUT_RC,
+                bc.DsmcInvocationStats(),
+                error_text=(
+                    f"idle timeout ({int(bc.DEFAULT_IDLE_TIMEOUT_SECS) + 1}s >= "
+                    f"{int(bc.DEFAULT_IDLE_TIMEOUT_SECS)}s)"
+                ),
+                idle_timeout_retries=2,
+            )
+            self.assertTrue(meta["auto_retried"])
+            conn = sqlite3.connect(state_path)
+            directory = conn.execute(
+                "SELECT backup_status, retry_not_before, last_return_code FROM directories WHERE run_id=? AND path_display=?",
+                (ctx.run_id, work),
+            ).fetchone()
+            attempt = conn.execute(
+                "SELECT outcome, return_code, error_text, ended_at FROM attempts WHERE id=?",
+                (attempt_id,),
+            ).fetchone()
+            conn.close()
+            self.assertEqual(directory[0], "pending")
+            self.assertIsNotNone(directory[1])
+            self.assertEqual(directory[2], bc.IDLE_TIMEOUT_RC)
+            self.assertEqual(attempt[0], "timed_out")
+            self.assertEqual(attempt[1], bc.IDLE_TIMEOUT_RC)
+            self.assertIn("idle timeout", attempt[2] or "")
+            self.assertIsNotNone(attempt[3])
+
+    def test_idle_retry_backoff_respected_and_resume_safe(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "root"
+            root.mkdir()
+            state_path = Path(tmpdir) / "state.sqlite3"
+            log_dir = Path(tmpdir) / "logs"
+            args = self._make_args(str(root), str(log_dir), str(state_path))
+            state_db = bc.PersistentStateDB(str(state_path))
+            ctx = state_db.create_new_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+                bc.build_operational_config(args),
+                False,
+            )
+            conn = sqlite3.connect(state_path)
+            conn.execute(
+                "UPDATE directories SET backup_status='succeeded', scan_status='scanned' WHERE run_id=? AND path_display=?",
+                (ctx.run_id, str(root)),
+            )
+            conn.commit()
+            conn.close()
+            work = str(root / "work")
+            state_db.insert_directory_if_absent(ctx.run_id, work, str(root), os.stat(root).st_dev, "scanned", "pending")
+            path = state_db.claim_backup_job(ctx.run_id, ctx.controller_id, 1)
+            self.assertEqual(path, work)
+            attempt_id = state_db.start_directory_attempt(ctx.run_id, ctx.execution_id, work, 1, "worker-01")
+            state_db.finish_directory_attempt(
+                ctx.run_id,
+                work,
+                attempt_id,
+                "timed_out",
+                bc.IDLE_TIMEOUT_RC,
+                bc.DsmcInvocationStats(),
+                error_text=(
+                    f"idle timeout ({int(bc.DEFAULT_IDLE_TIMEOUT_SECS) + 1}s >= "
+                    f"{int(bc.DEFAULT_IDLE_TIMEOUT_SECS)}s)"
+                ),
+                idle_timeout_retries=2,
+            )
+            self.assertIsNone(
+                state_db.claim_backup_job(ctx.run_id, ctx.controller_id, 1),
+                "delayed idle-retry work should not be claimable before retry_not_before",
+            )
+            self._expire_lease(str(state_path))
+            resumed = bc.PersistentStateDB(str(state_path)).resume_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+            )
+            resumed_db = bc.PersistentStateDB(str(state_path))
+            self.assertIsNone(
+                resumed_db.claim_backup_job(resumed.run_id, resumed.controller_id, 1),
+                "resume must keep delayed retry backoff durable",
+            )
+            conn = sqlite3.connect(state_path)
+            conn.execute(
+                "UPDATE directories SET retry_not_before='1970-01-01T00:00:00Z' WHERE run_id=? AND path_display=?",
+                (resumed.run_id, work),
+            )
+            conn.commit()
+            conn.close()
+            claimed_again = resumed_db.claim_backup_job(resumed.run_id, resumed.controller_id, 1)
+            self.assertEqual(claimed_again, work)
+            second_attempt = resumed_db.start_directory_attempt(
+                resumed.run_id, resumed.execution_id, work, 1, "worker-01"
+            )
+            resumed_db.finish_directory_attempt(
+                resumed.run_id,
+                work,
+                second_attempt,
+                "succeeded",
+                0,
+                bc.DsmcInvocationStats(),
+                idle_timeout_retries=2,
+            )
+            conn = sqlite3.connect(state_path)
+            status = conn.execute(
+                "SELECT backup_status FROM directories WHERE run_id=? AND path_display=?",
+                (resumed.run_id, work),
+            ).fetchone()[0]
+            attempts = conn.execute(
+                "SELECT COUNT(*) FROM attempts WHERE run_id=? AND path_bytes=?",
+                (resumed.run_id, os.fsencode(work)),
+            ).fetchone()[0]
+            conn.close()
+            self.assertEqual(status, "succeeded")
+            self.assertEqual(attempts, 2)
+
+    def test_idle_timeout_retry_exhaustion_is_terminal(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            root = Path(tmpdir) / "root"
+            root.mkdir()
+            state_path = Path(tmpdir) / "state.sqlite3"
+            log_dir = Path(tmpdir) / "logs"
+            args = self._make_args(str(root), str(log_dir), str(state_path))
+            state_db = bc.PersistentStateDB(str(state_path))
+            ctx = state_db.create_new_run(
+                str(root),
+                os.stat(root).st_dev,
+                bc.build_coverage_config(str(root), os.stat(root).st_dev, frozenset(), args),
+                bc.build_operational_config(args),
+                False,
+            )
+            conn = sqlite3.connect(state_path)
+            conn.execute(
+                "UPDATE directories SET backup_status='succeeded', scan_status='scanned' WHERE run_id=? AND path_display=?",
+                (ctx.run_id, str(root)),
+            )
+            conn.commit()
+            conn.close()
+            work = str(root / "work")
+            state_db.insert_directory_if_absent(ctx.run_id, work, str(root), os.stat(root).st_dev, "scanned", "pending")
+            claimed = state_db.claim_backup_job(ctx.run_id, ctx.controller_id, 1)
+            self.assertEqual(claimed, work)
+            attempt_id = state_db.start_directory_attempt(ctx.run_id, ctx.execution_id, work, 1, "worker-01")
+            meta = state_db.finish_directory_attempt(
+                ctx.run_id,
+                work,
+                attempt_id,
+                "timed_out",
+                bc.IDLE_TIMEOUT_RC,
+                bc.DsmcInvocationStats(),
+                error_text=(
+                    f"idle timeout ({int(bc.DEFAULT_IDLE_TIMEOUT_SECS) + 1}s >= "
+                    f"{int(bc.DEFAULT_IDLE_TIMEOUT_SECS)}s)"
+                ),
+                idle_timeout_retries=0,
+            )
+            self.assertFalse(meta["auto_retried"])
+            conn = sqlite3.connect(state_path)
+            row = conn.execute(
+                "SELECT backup_status, retry_not_before, last_return_code FROM directories WHERE run_id=? AND path_display=?",
+                (ctx.run_id, work),
+            ).fetchone()
+            conn.close()
+            self.assertEqual(row[0], "timed_out")
+            self.assertIsNone(row[1])
+            self.assertEqual(row[2], bc.IDLE_TIMEOUT_RC)
+
     def test_config_compatibility_rejects_exclusion_change_but_allows_worker_change(self):
         with tempfile.TemporaryDirectory() as tmpdir:
             root = Path(tmpdir) / "root"
@@ -2584,6 +2828,7 @@ class _CoordinatorTestBase(unittest.TestCase):
             dsmc_option=[],
             dsmc_timeout=0,
             dsmc_idle_timeout=0,
+            idle_timeout_retries=3,
             resourceutilization=2,
             log_dir=log_dir,
             state_db=state_db,
@@ -2977,6 +3222,7 @@ class TestWorkerExceptionShowsError(unittest.TestCase):
                 dsmc_option=[],
                 dsmc_timeout=0,
                 dsmc_idle_timeout=0,
+                idle_timeout_retries=3,
                 resourceutilization=2,
                 batch_size=1,
             )
