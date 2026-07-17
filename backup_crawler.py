@@ -128,6 +128,9 @@ HEARTBEAT_INTERVAL = 5.0
 # 2**(attempt-1)``, capped at 1 second, giving a bounded backoff sequence.
 RETRY_BASE_DELAY_SECS = 0.05
 
+# Column separator for the failed-directories TSV log.
+_TSV_SEP = "\t"
+
 _UNIT_MULTIPLIERS: dict[str, int] = {
     "B": 1,
     "KB": 1024,
@@ -3658,7 +3661,7 @@ def persistent_worker(
                         logger.write(
                             f"{worker_name}: TIMEOUT rc={return_code} path={path}"
                         )
-                        failed_logger.write(f"{return_code}\t{path}\t# timeout")
+                        failed_logger.write(f"{return_code}{_TSV_SEP}{path}{_TSV_SEP}# timeout")
                     elif outcome == "interrupted":
                         logger.write(
                             f"{worker_name}: interrupted rc={return_code} path={path}"
@@ -3668,11 +3671,11 @@ def persistent_worker(
                         logger.write(
                             f"{worker_name}: FAILED rc={return_code} path={path}"
                         )
-                        failed_logger.write(f"{return_code}\t{path}")
+                        failed_logger.write(f"{return_code}{_TSV_SEP}{path}")
             except _WorkerStopRequested:
                 # Stop was requested after the job was claimed but before its
                 # attempt began; the finally-block below releases the claim.
-                pass
+                logger.write(f"{worker_name}: stop requested before attempt started for path={path}")
             finally:
                 if not started:
                     # The job was claimed but its attempt never began; return it
