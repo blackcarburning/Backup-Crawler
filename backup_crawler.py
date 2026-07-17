@@ -74,6 +74,7 @@ import json
 import os
 import queue
 import re
+import shlex
 import shutil
 import signal
 import socket
@@ -1482,7 +1483,7 @@ class PersistentStateDB:
         elif int(row[0]) != SQLITE_SCHEMA_VERSION:
             raise RuntimeError(
                 f"Unsupported state DB schema version {row[0]} at {self.path}. "
-                f"Expected {SQLITE_SCHEMA_VERSION}. Automatic schema migration is not supported; copy the database aside and use --new-run to archive it to a timestamped .bak file and start with a fresh state DB if needed."
+                f"Expected {SQLITE_SCHEMA_VERSION}. Automatic schema migration is not supported. To preserve the old DB, copy it aside manually before running --new-run, which archives any existing DB to a timestamped .bak file and creates a fresh state DB."
             )
         conn.commit()
         if os.path.exists(self.path):
@@ -2348,6 +2349,41 @@ def make_root_chunk_dsmc_callbacks(state_db: PersistentStateDB, chunk_id: int):
 
     return _on_root_child_started, _on_root_child_output
 
+def build_resume_command(args: argparse.Namespace, root: str) -> str:
+    parts = [
+        sys.executable,
+        sys.argv[0],
+        root,
+        str(args.streams),
+        '--state-db',
+        args.state_db,
+        '--resume',
+        '--log-dir',
+        args.log_dir,
+        '--dsmc',
+        args.dsmc,
+        '--dsmc-timeout',
+        str(args.dsmc_timeout),
+        '--dsmc-idle-timeout',
+        str(args.dsmc_idle_timeout),
+        '--resourceutilization',
+        str(args.resourceutilization),
+        '--batch-size',
+        str(args.batch_size),
+        '--queue-size',
+        str(args.queue_size),
+    ]
+    if args.no_dashboard:
+        parts.append('--no-dashboard')
+    else:
+        parts.extend(['--dashboard-refresh-seconds', str(args.dashboard_refresh_seconds)])
+    parts.extend(['--progress-seconds', str(args.progress_seconds)])
+    for extra in args.exclude_path:
+        parts.extend(['--exclude-path', extra])
+    for option in args.dsmc_option:
+        parts.extend(['--dsmc-option', option])
+    return ' '.join(shlex.quote(part) for part in parts)
+
 # ---------------------------------------------------------------------------
 # Filesystem / mount utilities
 # ---------------------------------------------------------------------------
@@ -2940,7 +2976,12 @@ def run_dsmc_supervised(
 
     # Reached only on timeout or stop
     is_idle_timeout = timed_out_reason is not None and "idle" in timed_out_reason
-    synthetic_rc = IDLE_TIMEOUT_RC if is_idle_timeout else (INTERRUPTED_RC if timed_out_reason == "stop requested" else TIMEOUT_RC)
+    if is_idle_timeout:
+        synthetic_rc = IDLE_TIMEOUT_RC
+    elif timed_out_reason == "stop requested":
+        synthetic_rc = INTERRUPTED_RC
+    else:
+        synthetic_rc = TIMEOUT_RC
     logger.write(
         f"{worker_name}: killing dsmc pid={proc.pid} ({timed_out_reason})"
     )
@@ -3703,8 +3744,9 @@ def parse_args() -> argparse.Namespace:
         parser.error("mountpoint is required unless --status is used")
     if args.status and args.mountpoint is not None and args.streams_positional is not None:
         parser.error("WORKERS positional argument cannot be used with --status")
-    if args.dry_run and (args.resume or args.new_run or args.status or args.state_db is not None):
-        parser.error("--dry-run cannot be combined with durable state options")
+    requested_durable_state_mode = args.resume or args.new_run or args.status or args.state_db is not None
+    if args.dry_run and requested_durable_state_mode:
+        parser.error("--dry-run cannot be combined with --state-db/--resume/--new-run/--status")
     if args.status and args.state_db is None:
         parser.error("--status requires --state-db PATH")
     if args.streams < 1:
@@ -4230,7 +4272,7 @@ def run_persistent_main(args: argparse.Namespace) -> int:
                         f"WARNING: {thread.name} did not exit within {args.shutdown_wait_seconds}s after interrupt"
                     )
             state_db.mark_run_state(run_ctx.run_id, 'interrupted')
-            resume_cmd = f"{sys.executable} {sys.argv[0]} {root} {args.streams} --state-db {args.state_db} --resume"
+            resume_cmd = build_resume_command(args, root)
             print(f"Interrupted. Resume with: {resume_cmd}", flush=True)
             state_db.clear_controller(run_ctx.run_id, run_ctx.controller_id, 'interrupted')
             return 130
