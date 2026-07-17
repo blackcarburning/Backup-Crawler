@@ -67,6 +67,7 @@ anchor rather than an ordinary directory job:
 from __future__ import annotations
 
 import argparse
+import calendar
 import dataclasses
 import hashlib
 import json
@@ -88,8 +89,9 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 # Clear Screen
 # ---------------------------------------------------------------------------
-if sys.stdout.isatty() and os.environ.get("TERM"):
-    os.system("clear")
+def maybe_clear_screen() -> None:
+    if sys.stdout.isatty() and os.environ.get("TERM"):
+        os.system("clear")
 
 
 # ---------------------------------------------------------------------------
@@ -1197,6 +1199,14 @@ def _utc_now() -> str:
     return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
 
 
+def _utc_now_from_epoch(epoch: float) -> str:
+    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(epoch))
+
+
+def _parse_utc_timestamp(value: str) -> float:
+    return float(calendar.timegm(time.strptime(value, "%Y-%m-%dT%H:%M:%SZ")))
+
+
 def encode_path_for_db(path: str) -> bytes:
     return os.fsencode(path)
 
@@ -1295,7 +1305,9 @@ class PersistentStateDB:
         if conn is None:
             # Each thread stores its own SQLite connection in thread-local state,
             # so disabling SQLite's same-thread check here is safe and avoids
-            # cross-thread reuse of a single connection object.
+            # cross-thread reuse of a single connection object. The 5-second
+            # timeout matches the busy_timeout pragma below and gives writers a
+            # bounded window to wait for WAL contention before surfacing an error.
             conn = sqlite3.connect(self.path, timeout=5, check_same_thread=False)
             conn.row_factory = sqlite3.Row
             self._apply_pragmas(conn)
@@ -1470,7 +1482,7 @@ class PersistentStateDB:
         elif int(row[0]) != SQLITE_SCHEMA_VERSION:
             raise RuntimeError(
                 f"Unsupported state DB schema version {row[0]} at {self.path}. "
-                f"Expected {SQLITE_SCHEMA_VERSION}. Automatic schema migration is not supported; copy the database aside and use --new-run for a fresh state DB if needed."
+                f"Expected {SQLITE_SCHEMA_VERSION}. Automatic schema migration is not supported; copy the database aside and use --new-run to archive it to a timestamped .bak file and start with a fresh state DB if needed."
             )
         conn.commit()
         if os.path.exists(self.path):
@@ -2178,15 +2190,7 @@ class PersistentStateDB:
         }
 
     def load_global_stats(self, run_id: str, execution_id: str | None = None) -> dict[str, int | float]:
-        where = "WHERE run_id=? AND outcome!='running'"
-        params: list[object] = [run_id]
-        if execution_id is not None:
-            where += " AND execution_id=?"
-            params.append(execution_id)
-        # The WHERE fragment is constructed entirely from fixed internal code,
-        # not from user input, so this formatted SQL remains parameter-safe.
-        row = self._connect().execute(
-            f"""
+        query = """
             SELECT
                 COUNT(*) AS dsmc_done,
                 SUM(summary_complete) AS summaries_parsed,
@@ -2205,10 +2209,15 @@ class PersistentStateDB:
                 SUM(bytes_transferred) AS bytes_transferred,
                 SUM(elapsed_secs) AS total_elapsed_secs
               FROM attempts
-              {where}
-            """,
-            tuple(params),
-        ).fetchone()
+             WHERE run_id=? AND outcome!='running'
+        """
+        params: tuple[object, ...]
+        if execution_id is None:
+            params = (run_id,)
+        else:
+            query += " AND execution_id=?"
+            params = (run_id, execution_id)
+        row = self._connect().execute(query, params).fetchone()
         return {
             "dsmc_done": int(row['dsmc_done'] or 0),
             "summaries_parsed": int(row['summaries_parsed'] or 0),
@@ -2263,14 +2272,6 @@ class PersistentStateDB:
         }
 
 
-def _parse_utc_timestamp(value: str) -> float:
-    return time.mktime(time.strptime(value, "%Y-%m-%dT%H:%M:%SZ"))
-
-
-def _utc_now_from_epoch(epoch: float) -> str:
-    return time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(epoch))
-
-
 class ControllerHeartbeat(threading.Thread):
     def __init__(self, state_db: PersistentStateDB, run_ctx: RunContext, stop_event: threading.Event) -> None:
         super().__init__(name="controller-heartbeat", daemon=True)
@@ -2322,6 +2323,30 @@ def classify_return_code(return_code: int, stop_event: threading.Event) -> str:
     if return_code <= MAX_DSMC_SUCCESS_RC:
         return 'succeeded'
     return 'failed'
+
+
+def make_directory_dsmc_callbacks(
+    state_db: PersistentStateDB,
+    run_ctx: RunContext,
+    current_path: str,
+):
+    def _on_child_started(pid: int, _start: float) -> None:
+        state_db.set_directory_child_pid(run_ctx.run_id, current_path, pid, _utc_now())
+
+    def _on_child_output(_ts: float) -> None:
+        state_db.touch_directory_attempt(run_ctx.run_id, current_path)
+
+    return _on_child_started, _on_child_output
+
+
+def make_root_chunk_dsmc_callbacks(state_db: PersistentStateDB, chunk_id: int):
+    def _on_root_child_started(pid: int, _start: float) -> None:
+        state_db.set_root_chunk_pid(chunk_id, pid)
+
+    def _on_root_child_output(_ts: float) -> None:
+        state_db.touch_root_chunk(chunk_id)
+
+    return _on_root_child_started, _on_root_child_output
 
 # ---------------------------------------------------------------------------
 # Filesystem / mount utilities
@@ -3245,11 +3270,11 @@ def persistent_worker(
                         )
                         return_code = 0
                         inv_stats = DsmcInvocationStats()
-                        def _on_child_started(pid: int, _start: float, current_path: str = path) -> None:
-                            state_db.set_directory_child_pid(run_ctx.run_id, current_path, pid, _utc_now())
-
-                        def _on_child_output(_ts: float, current_path: str = path) -> None:
-                            state_db.touch_directory_attempt(run_ctx.run_id, current_path)
+                        child_started_callback, child_output_callback = make_directory_dsmc_callbacks(
+                            state_db,
+                            run_ctx,
+                            path,
+                        )
 
                         try:
                             return_code, inv_stats = run_dsmc_supervised(
@@ -3264,8 +3289,8 @@ def persistent_worker(
                                 dsmc_timeout=args.dsmc_timeout,
                                 dsmc_idle_timeout=args.dsmc_idle_timeout,
                                 stop_event=stop_event,
-                                child_started_callback=_on_child_started,
-                                child_output_callback=_on_child_output,
+                                child_started_callback=child_started_callback,
+                                child_output_callback=child_output_callback,
                             )
                             global_stats.add_invocation(inv_stats)
                         except OSError as exc:
@@ -3399,11 +3424,10 @@ def persistent_run_root_files_job(
                 )
                 return_code = 0
                 inv_stats = DsmcInvocationStats()
-                def _on_root_child_started(pid: int, _start: float, chunk_id: int = int(chunk["id"])) -> None:
-                    state_db.set_root_chunk_pid(chunk_id, pid)
-
-                def _on_root_child_output(_ts: float, chunk_id: int = int(chunk["id"])) -> None:
-                    state_db.touch_root_chunk(chunk_id)
+                child_started_callback, child_output_callback = make_root_chunk_dsmc_callbacks(
+                    state_db,
+                    int(chunk["id"]),
+                )
 
                 try:
                     return_code, inv_stats = run_dsmc_supervised(
@@ -3418,8 +3442,8 @@ def persistent_run_root_files_job(
                         dsmc_timeout=args.dsmc_timeout,
                         dsmc_idle_timeout=args.dsmc_idle_timeout,
                         stop_event=stop_event,
-                        child_started_callback=_on_root_child_started,
-                        child_output_callback=_on_root_child_output,
+                        child_started_callback=child_started_callback,
+                        child_output_callback=child_output_callback,
                     )
                     global_stats.add_invocation(inv_stats)
                 except OSError as exc:
@@ -3710,6 +3734,7 @@ def parse_args() -> argparse.Namespace:
 # ---------------------------------------------------------------------------
 
 def run_legacy_main(args: argparse.Namespace) -> int:
+    maybe_clear_screen()
     start_time = time.monotonic()
     root = os.path.normpath(os.path.realpath(args.mountpoint))
     args.mountpoint = root
@@ -4020,6 +4045,7 @@ def run_status_mode(args: argparse.Namespace) -> int:
 
 
 def run_persistent_main(args: argparse.Namespace) -> int:
+    maybe_clear_screen()
     start_time = time.monotonic()
     root = os.path.normpath(os.path.realpath(args.mountpoint))
     args.mountpoint = root
@@ -4204,7 +4230,7 @@ def run_persistent_main(args: argparse.Namespace) -> int:
                         f"WARNING: {thread.name} did not exit within {args.shutdown_wait_seconds}s after interrupt"
                     )
             state_db.mark_run_state(run_ctx.run_id, 'interrupted')
-            resume_cmd = f"python3 backup_crawler.py {root} {args.streams} --state-db {args.state_db} --resume"
+            resume_cmd = f"{sys.executable} {sys.argv[0]} {root} {args.streams} --state-db {args.state_db} --resume"
             print(f"Interrupted. Resume with: {resume_cmd}", flush=True)
             state_db.clear_controller(run_ctx.run_id, run_ctx.controller_id, 'interrupted')
             return 130
